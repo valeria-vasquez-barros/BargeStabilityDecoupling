@@ -8,17 +8,20 @@ import xarray as xr
 import numpy as np
 import pandas as pd
 import os
+import dask.array as da
+import dask.config
 
-timesteps = pd.date_range(start="2024-05-21",end="2024-09-30 23:59:59",freq="10T")
+# adjust based on data files
+timesteps = pd.date_range(start="2024-05-24 00:00:00",end="2024-09-19 23:59:59",freq="10T")
 heights = np.linspace(40,300,14)
 
-wind_speed = np.full((len(timesteps),len(heights)),np.nan)
-wind_direction = np.full((len(timesteps),len(heights)),np.nan)
+theta = np.full((len(timesteps),len(heights)),np.nan)
+temperature = np.full((len(timesteps),len(heights)),np.nan)
 
 dataset = xr.Dataset(
     {
-        "wind_speed": (["time","height"], wind_speed),
-        "wind_direction": (["time","height"], wind_direction),
+        "theta": (["time","height"], theta),
+        "temperature": (["time","height"], temperature),
         "day": ("time", timesteps.floor("D"))
     },
     coords=
@@ -28,30 +31,38 @@ dataset = xr.Dataset(
     },
 )
 
+folder = r"C:\Users\valer\Documents\WFIP3\barg.assist.tropoe.z01.c1"
 
-folder = r"C:\Users\valer\Documents\WFIP3\barg.lidar.z02.a0\downloader"
-# folder = r"C:\Users\valer\Documents\WFIP3\lidar.test"
+files = [
+    os.path.join(folder,file)
+    for file in os.listdir(folder)
+    if file.endswith(".nc")
+]
 
-for file in os.listdir(folder):
-    # only grab netCDF files
-    if not file.endswith(".nc"):
-        continue
-    fpath = os.path.join(folder, file)
-    data = xr.open_dataset(fpath,decode_times = True)
-    # grab wind speed/direction from each file (represents one or part of a day)
-    ws = data["wind_speed"]
-    wd = data["wind_direction"]
-    # reindex to match the pre-defined grid of the dataset and ensure coordinate alignment
-    ws = ws.reindex_like(dataset["wind_speed"])
-    wd = wd.reindex_like(dataset["wind_direction"])
-    # put the wind speed/direction data from each day into the dataset
-    dataset["wind_speed"]=dataset["wind_speed"].combine_first(ws)
-    dataset["wind_direction"]=dataset["wind_direction"].combine_first(wd)
+data = xr.open_mfdataset(files, combine="by_coords", decode_times=True)
+data = data.reindex(time=timesteps,height=heights)
+# data = data.assign_coords(day=("time",timesteps.floor("D")))
+dataset["theta"] = data["theta"]
+dataset["temperature"] = data["temperature"]
+
+    # data = xr.open_dataset(fpath,decode_times = True)
+    # data = data.reindex_like(time=dataset)
+    # dataset["theta"].loc[dict(time=data.time,height=data.height)] = data["theta"]
+    # dataset["temperature"].loc[dict(time=data.time,height=data.height)] = data["temperature"]
+    # grab variables from each file (represents one or part of a day)
+    # theta = data["theta"]
+    # temperature = data["temperature"]
+    # # reindex to match the pre-defined grid of the dataset and ensure coordinate alignment
+    # theta = theta.reindex_like(dataset["theta"])
+    # temperature = temperature.reindex_like(dataset["temperature"])
+    # # put the data from each day into the dataset
+    # dataset["theta"]=dataset["theta"].combine_first(theta)
+    # dataset["temperature"]=dataset["temperature"].combine_first(temperature)
     
-print(dataset["wind_speed"].sel(time=slice("2024-07-20","2024-07-20 23:59:59")).values)
-print(dataset["wind_direction"].sel(time=slice("2024-07-20","2024-07-20 23:59:59")).values)
+# print(dataset["theta"].sel(time=slice("2024-07-20","2024-07-20 23:59:59")).values)
+# print(dataset["temperature"].sel(time=slice("2024-07-20","2024-07-20 23:59:59")).values)
 
-new_folder = r"C:\Users\valer\Documents\WFIP3\lidar.test"
-new_filename = "barg.lidar.z02.combined.nc"
+new_folder = r"C:\Users\valer\Documents\WFIP3"
+new_filename = "barg.assist.tropoe.z01.combined.nc"
 dataset.to_netcdf(os.path.join(new_folder,new_filename))
 print("file saved")
