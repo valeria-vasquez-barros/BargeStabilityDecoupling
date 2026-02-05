@@ -8,11 +8,11 @@ import xarray as xr
 import numpy as np
 import pandas as pd
 import os
-import dask.array as da
-import dask.config
 
 # adjust based on data files
-timesteps = pd.date_range(start="2024-05-24 00:00:00",end="2024-09-19 23:59:59",freq="10T")
+timesteps = pd.date_range(start="2024-05-24 00:00:00",
+                          end="2024-09-19 23:59:59",
+                          freq="10T")
 heights = np.linspace(40,300,14)
 
 theta = np.full((len(timesteps),len(heights)),np.nan)
@@ -39,11 +39,36 @@ files = [
     if file.endswith(".nc")
 ]
 
-data = xr.open_mfdataset(files, combine="by_coords", decode_times=True)
-data = data.reindex(time=timesteps,height=heights)
-# data = data.assign_coords(day=("time",timesteps.floor("D")))
-dataset["theta"] = data["theta"]
-dataset["temperature"] = data["temperature"]
+def preprocess(file_data):
+    # ensure correct timestamp
+    file_data["time"]=file_data["time"].dt.floor("10min")
+    # km to m
+    file_data=file_data.assign_coords(height=file_data.height*1000)
+    # pre-select the desired height range
+    file_data["theta"]=file_data["theta"].sel(height=slice(40,300))
+    file_data["theta"]=file_data["theta"].interp(height = heights,
+                                                 kwargs={"fill_value":"extrapolate"}
+                                                 )
+    file_data["temperature"]=file_data["temperature"].sel(height=slice(40,300))
+    file_data["temperature"]=file_data["temperature"].interp(height = heights,
+                                                 kwargs={"fill_value":"extrapolate"}
+                                                 )
+    return file_data[["theta","temperature"]]
+
+data_comb = xr.open_mfdataset(
+    files, 
+    combine="nested", 
+    concat_dim="time",
+    preprocess=preprocess,
+    coords="minimal",
+    compat="override"
+    )
+
+data_comb = data_comb.sortby("time")
+data_comb = data_comb.reindex(time=timesteps)
+# data_comb = data_comb.assign_coords(day=("time",timesteps.floor("D")))
+dataset["theta"] = data_comb["theta"]
+dataset["temperature"] = data_comb["temperature"]
 
     # data = xr.open_dataset(fpath,decode_times = True)
     # data = data.reindex_like(time=dataset)
