@@ -41,7 +41,9 @@ files = [
 
 def preprocess(file_data):
     # ensure correct timestamp
+    print("Timestamps BEFORE processing:",file_data["time"])
     file_data["time"]=file_data["time"].dt.floor("10min")
+    print("Timesteps AFTER processing:",file_data["time"])
     # km to m
     file_data=file_data.assign_coords(height=file_data.height*1000)
     # pre-select the desired height range
@@ -49,11 +51,13 @@ def preprocess(file_data):
     file_data["theta"]=file_data["theta"].interp(height = heights,
                                                  kwargs={"fill_value":"extrapolate"}
                                                  )
+    # print(file_data["theta"].coords)
     file_data["temperature"]=file_data["temperature"].sel(height=slice(40,300))
     file_data["temperature"]=file_data["temperature"].interp(height = heights,
                                                  kwargs={"fill_value":"extrapolate"}
                                                  )
-    return file_data[["theta","temperature"]]
+    # print(file_data["temperature"].coords)
+    return file_data[["theta","temperature","time"]]
 
 data_comb = xr.open_mfdataset(
     files, 
@@ -66,9 +70,10 @@ data_comb = xr.open_mfdataset(
 
 data_comb = data_comb.sortby("time")
 data_comb = data_comb.reindex(time=timesteps)
+print(data_comb["theta"].values)
 # data_comb = data_comb.assign_coords(day=("time",timesteps.floor("D")))
-dataset["theta"] = data_comb["theta"]
-dataset["temperature"] = data_comb["temperature"]
+# dataset["theta"] = data_comb["theta"]
+# dataset["temperature"] = data_comb["temperature"]
 
     # data = xr.open_dataset(fpath,decode_times = True)
     # data = data.reindex_like(time=dataset)
