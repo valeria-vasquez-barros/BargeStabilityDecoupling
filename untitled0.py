@@ -54,3 +54,7 @@ data_comb = xr.open_mfdataset(
 
 data_comb = data_comb.sortby("time")
 data_comb = data_comb.reindex(time=timesteps)
+new_folder = r"C:\Users\valer\Documents\WFIP3\assist.test"
+new_filename = "assist.combined.test.nc"
+data_comb.to_netcdf(os.path.join(new_folder,new_filename))
+print("file saved")
