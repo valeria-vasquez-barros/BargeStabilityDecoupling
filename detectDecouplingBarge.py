@@ -20,9 +20,9 @@ dataAssist = xr.open_dataset(filepathAssist,decode_times = "true")
 dataLidar = xr.open_dataset(filepathLidar,decode_times="true")
 
 # Grab theta, temp variables from combined assist file
-theta = dataAssist["theta"].sel(time=slice("2024-07-15 00:00:00","2024-07-15 23:50:50"))
+theta = dataAssist["theta"].sel(time=slice("2024-07-15 00:10:00","2024-07-15 23:50:50"))
 # theta = dataAssist["theta"]
-temp = dataAssist["temperature"].sel(time=slice("2024-07-15 00:00:00","2024-07-15 23:50:50"))
+temp = dataAssist["temperature"].sel(time=slice("2024-07-15 00:10:00","2024-07-15 23:50:50"))
 # temp = dataAssist["temperature"]
 dTheta = theta.differentiate("height")
 
@@ -86,9 +86,9 @@ sunset = s["sunset"]
 
 # grab wind speed, wind direction from combined lidar file
 # wind_speed = dataLidar["wind_speed"]
-wind_speed = dataLidar["wind_speed"].sel(time=slice("2024-07-15 00:10:00","2024-07-16 00:00:00"))
+wind_speed = dataLidar["wind_speed"].sel(time=slice("2024-07-15 00:10:00","2024-07-15 23:50:00"))
 # wind_direction = dataLidar["wind_direction"]
-wind_direction = dataLidar["wind_direction"].sel(time=slice("2024-07-15 00:10:00","2024-07-16 00:00:00"))
+wind_direction = dataLidar["wind_direction"].sel(time=slice("2024-07-15 00:10:00","2024-07-15 23:50:00"))
 
 # calculate u and v
 uGeo = -wind_speed * np.sin(wind_direction)
@@ -123,7 +123,7 @@ deltaTheta_surf = thetasurf_f - thetasurf_i # K
 tempsurf_i = temp.sel(height=hsurf_i)
 tempsurf_f = temp.sel(height=hsurf_f)
 dTemp_surf = tempsurf_f - tempsurf_i
-avgTemp_surf = dTemp_surf/dZ_surf + 273.15 # K, possibly need to modify?
+avgTemp_surf = dTemp_surf/dZ_surf + 273.15 # K, apparently this could be a lapse rate?
 # 4) change in u,v over heights
 usurf_i = uGeo.sel(height=hsurf_i)
 usurf_f = uGeo.sel(height=hsurf_f)
@@ -154,7 +154,7 @@ deltaTheta_hub = thetahub_f - thetahub_i # K
 temphub_i = temp.sel(height=hhub_i)
 temphub_f = temp.sel(height=hhub_f)
 dTemp_hub = temphub_f - temphub_i
-avgTemp_hub = dTemp_hub/dZ_hub + 273.15 # K
+avgTemp_hub = dTemp_hub/dZ_hub + 273.15 # K, apparently this could be a lapse rate?
 
 # 4) change in u,v over heights
 uhub_i = uGeo.sel(height=hhub_i)
