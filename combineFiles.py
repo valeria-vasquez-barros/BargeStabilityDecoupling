@@ -14,9 +14,9 @@ timesteps = pd.date_range(start="2024-05-24 00:00:00",
                           end="2024-09-19 23:59:59",
                           freq="10T")
 heights = np.linspace(40,300,14)
-
 folder = r"C:\Users\valer\Documents\WFIP3\barg.assist.tropoe.z01.c1"
 
+# combines the .nc files in folder
 files = [
     os.path.join(folder,file)
     for file in os.listdir(folder)
