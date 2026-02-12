@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
 # Open the data files
-filepath0 = r"C:\Users\valer\Documents\WFIP3\barg.assist.tropoe.z01.c1\barg.assist.tropoe.z01.c1.20240720.000005.nc"
+filepath0 = r"C:\Users\valer\Documents\WFIP3\barg.assist.tropoe.z01.c1\barg.assist.tropoe.z01.c1.20240715.000005.nc"
 filepathTest = r"C:\Users\valer\Documents\WFIP3\barg.assist.tropoe.z01.combined.nc"
 # filepathTest = r"C:\Users\valer\Documents\WFIP3\lidar.test\barg.lidar.z02.combined.nc"
 # filepath1 = r"C:\Users\valer\Documents\WFIP3\barg.lidar.z02.a0\downloader\barg.lidar.z02.a0.20240720.001000.sta.nc"
@@ -40,14 +40,11 @@ dTheta = thetaExt.differentiate("height") # central difference dT/dz (2nd order 
 
 # perform the same things again for the combined file
 data_Test = dataTest.copy()
-data_Test["height"].attrs["units"] = "m"
-heightCombined = data_Test["height"].sel(height = slice(40,300))
-thetaCombined = data_Test["theta"].sel(height = slice(40,300),time=slice("2024-07-20 00:00:00","2024-07-20 23:50:50"))
-tempCombined = data_Test["temperature"].sel(height = slice(40,300),time=slice("2024-07-20 00:00:00","2024-07-21 23:50:50"))
-
-thetaExtCombined = thetaCombined.interp(height = np.linspace(40,300,14),kwargs={"fill_value":"extrapolate"})
-tempExtCombined = tempCombined.interp(height = np.linspace(40,300,14),kwargs={"fill_value":"extrapolate"})
-dThetaCombined = thetaExtCombined.differentiate("height")
+thetaCombined = data_Test["theta"].sel(time=slice("2024-07-15 00:00:00","2024-07-15 23:50:50"))
+tempCombined = data_Test["temperature"].sel(time=slice("2024-07-15 00:00:00","2024-07-15 23:50:50"))
+# thetaExtCombined = thetaCombined.interp(height = np.linspace(40,300,14),kwargs={"fill_value":"extrapolate"})
+# tempExtCombined = tempCombined.interp(height = np.linspace(40,300,14),kwargs={"fill_value":"extrapolate"})
+dThetaCombined = thetaCombined.differentiate("height")
 
 # # combine wind speeds
 # wind_speedCombined = dataTest["wind_speed"].sel(time=slice("2024-07-20 00:10:00", "2024-07-21 00:00:00"))

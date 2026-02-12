@@ -24,14 +24,18 @@ files = [
 ]
 
 def preprocess(file_data):
+    
     # ensure correct timestamp
     file_data["time"]=file_data["time"].dt.floor("10min")
+    
     # km to m
     file_data=file_data.assign_coords(height=file_data.height*1000)
     file_data["height"].attrs["units"] = "m"
+    
     # pre-select the desired height range
     file_data=file_data.sel(height=slice(40,300))
     file_data=file_data.interp(height = heights,kwargs={"fill_value":"extrapolate"})
+    
     return file_data[["theta","temperature","time"]]
 
 data_comb = xr.open_mfdataset(
