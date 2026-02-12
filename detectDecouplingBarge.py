@@ -118,19 +118,19 @@ dZ_surf = hsurf_f-hsurf_i
 # 2) change in potential temperature
 thetasurf_i = theta.sel(height=hsurf_i)
 thetasurf_f = theta.sel(height=hsurf_f)
-deltaTheta_surf = thetasurf_f.values - thetasurf_i.values # K
+deltaTheta_surf = thetasurf_f - thetasurf_i # K
 # 3) change in temperature
 tempsurf_i = temp.sel(height=hsurf_i)
 tempsurf_f = temp.sel(height=hsurf_f)
-dTemp_surf = tempsurf_f.values - tempsurf_i.values
-avgTemp_surf = dTemp_surf/dZ_surf + 273.15 # K
+dTemp_surf = tempsurf_f - tempsurf_i
+avgTemp_surf = dTemp_surf/dZ_surf + 273.15 # K, possibly need to modify?
 # 4) change in u,v over heights
 usurf_i = uGeo.sel(height=hsurf_i)
 usurf_f = uGeo.sel(height=hsurf_f)
-dU_surf = usurf_f.values - usurf_i.values
+dU_surf = usurf_f - usurf_i
 vsurf_i = vGeo.sel(height=hsurf_i)
 vsurf_f = vGeo.sel(height=hsurf_f)
-dV_surf = vsurf_f.values - vsurf_i.values
+dV_surf = vsurf_f - vsurf_i
 # 5) final calculation
 num1_surf = g/avgTemp_surf
 num2_surf = deltaTheta_surf*dZ_surf
@@ -148,21 +148,21 @@ dZ_hub = hhub_f-hhub_i
 # 2) change in potential temperature
 thetahub_i = theta.sel(height=hhub_i)
 thetahub_f = theta.sel(height=hhub_f)
-deltaTheta_hub = thetahub_f.values - thetahub_i.values # K
+deltaTheta_hub = thetahub_f - thetahub_i # K
 
 # 3) change in temperature
 temphub_i = temp.sel(height=hhub_i)
 temphub_f = temp.sel(height=hhub_f)
-dTemp_hub = temphub_f.values - temphub_i.values
+dTemp_hub = temphub_f - temphub_i
 avgTemp_hub = dTemp_hub/dZ_hub + 273.15 # K
 
 # 4) change in u,v over heights
 uhub_i = uGeo.sel(height=hhub_i)
 uhub_f = uGeo.sel(height=hhub_f)
-dU_hub = uhub_f.values - uhub_i.values
+dU_hub = uhub_f - uhub_i
 vhub_i = vGeo.sel(height=hhub_i)
 vhub_f = vGeo.sel(height=hhub_f)
-dV_hub = vhub_f.values - vhub_i.values
+dV_hub = vhub_f - vhub_i
 
 # 5) final calculation
 num1_hub = g/avgTemp_hub
@@ -192,6 +192,12 @@ def detect_dynamicdecoupling(BulkRi_surf,BulkRi_hub):
 
 devents = detect_dynamicdecoupling(BulkRi_surf,BulkRi_hub)
 print(devents)
+
+
+
+
+
+
 # plot Bulk Richardson number over time
 # BulkRi.plot()
 # ax = plt.gca()
