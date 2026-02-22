@@ -21,8 +21,8 @@ dataLidar = xr.open_dataset(filepathLidar,decode_times="true")
 
 # Grab theta, temp variables from combined assist file
 #.sel(time=slice("2024-07-20 00:00:00","2024-07-20 23:50:50"))
-theta = dataAssist["theta"]
-temp = dataAssist["temperature"]
+theta = dataAssist["theta"].sel(time=slice("2024-07-20 00:00:00","2024-07-20 23:50:50"))
+temp = dataAssist["temperature"].sel(time=slice("2024-07-20 00:00:00","2024-07-20 23:50:50"))
 dTheta = theta.differentiate("height")
 
 # Compare "near-surface" and "hub-height"
@@ -59,10 +59,8 @@ sunrise = s["sunrise"]
 sunset = s["sunset"]
 
 # grab wind speed, wind direction from combined lidar file
-wind_speed = dataLidar["wind_speed"]
-# wind_speed = dataLidar["wind_speed"].sel(time=slice("2024-07-20 00:00:00","2024-07-20 23:50:00"))
-wind_direction = dataLidar["wind_direction"]
-# wind_direction = dataLidar["wind_direction"].sel(time=slice("2024-07-20 00:00:00","2024-07-20 23:50:00"))
+wind_speed = dataLidar["wind_speed"].sel(time=slice("2024-07-20 00:00:00","2024-07-20 23:50:50"))
+wind_direction = dataLidar["wind_direction"].sel(time=slice("2024-07-20 00:00:00","2024-07-20 23:50:50"))
 
 # calculate u and v
 uGeo = -wind_speed * np.sin(wind_direction)
@@ -153,19 +151,33 @@ def detect_dynamicdecoupling(BulkRi_surf,BulkRi_hub):
 devents = detect_dynamicdecoupling(BulkRi_surf,BulkRi_hub)
 print(devents)
 
-# # plot dTheta along height and time:
-# plt.figure(figsize=(10, 5))
-# dTheta.plot(x="time", y="height", cmap="coolwarm")
-# ax = plt.gca()
-# ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))  # only show hours
-# ax.axvline(sunrise,color="purple",linestyle="--",linewidth=1.5,label='Sunrise')
-# ax.axvline(sunset,color="black",linestyle="--",linewidth=1.5,label='Sunset')
-# ax.legend(loc="upper right")
-# plt.title("15 July, 2024")
-# plt.xlabel("UTC Time")
-# plt.ylabel("Height (m)")
-# plt.tight_layout()
-# plt.show()
+# plot dTheta along height and time:
+plt.figure(figsize=(10, 5))
+dTheta_surf.plot(x="time", y="height", cmap="coolwarm")
+ax = plt.gca()
+ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))  # only show hours
+ax.axvline(sunrise,color="purple",linestyle="--",linewidth=1.5,label='Sunrise')
+ax.axvline(sunset,color="black",linestyle="--",linewidth=1.5,label='Sunset')
+ax.legend(loc="upper right")
+plt.title("20 July, 2024")
+plt.xlabel("UTC Time")
+plt.ylabel("Height (m)")
+plt.tight_layout()
+plt.show()
+
+# plot dTheta along height and time:
+plt.figure(figsize=(10, 5))
+dTheta_hub.plot(x="time", y="height", cmap="coolwarm")
+ax = plt.gca()
+ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))  # only show hours
+ax.axvline(sunrise,color="purple",linestyle="--",linewidth=1.5,label='Sunrise')
+ax.axvline(sunset,color="black",linestyle="--",linewidth=1.5,label='Sunset')
+ax.legend(loc="upper right")
+plt.title("20 July, 2024")
+plt.xlabel("UTC Time")
+plt.ylabel("Height (m)")
+plt.tight_layout()
+plt.show()
 
 # # plot wind speed along height and time
 # fig,ax = plt.subplots(figsize=(10,5))
@@ -178,16 +190,64 @@ print(devents)
 # ax.set_title("Wind Vector Field [combined lidar file] on 20 July, 2024")
 # plt.show()
 
-# # plot Bulk Richardson number over time
-# BulkRi.plot()
+# plot surface Bulk Richardson number
+fig, ax = plt.subplots(figsize=(8,4))
+BulkRi_surf.plot(ax=ax)
+
+ax.set_xlim(BulkRi_surf.time.min().values,BulkRi_surf.time.max().values)
+ax.set_ylim(-1, 1)
+ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))
+ax.axhline(0.25, linestyle="--", label='Critical Ri')
+# ax.axvline(sunrise, linestyle="--", label='Sunrise')
+# ax.axvline(sunset, linestyle="--", label='Sunset')
+
+ax.set_title("20 July 2024 (40-60m)")
+ax.set_xlabel("UTC Time")
+ax.set_ylabel("Bulk Richardson number")
+ax.legend()
+plt.tight_layout()
+plt.show()
+
+# plot hub height Bulk Richardson number
+fig, ax = plt.subplots(figsize=(8,4))
+BulkRi_hub.plot(ax=ax)
+
+ax.set_xlim(BulkRi_hub.time.min().values,BulkRi_hub.time.max())
+ax.set_ylim(-1, 1)
+ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))
+ax.axhline(0.25, linestyle="--", label='Critical Ri')
+# ax.axvline(sunrise, linestyle="--", label='Sunrise')
+# ax.axvline(sunset, linestyle="--", label='Sunset')
+
+ax.set_title("20 July 2024 (120-160m)")
+ax.set_xlabel("UTC Time")
+ax.set_ylabel("Bulk Richardson number")
+ax.legend()
+plt.tight_layout()
+plt.show()
+
+# BulkRi_surf.plot(x="time")
 # ax = plt.gca()
-# ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))  # only show hours
+# ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))  # only show hours
 # ax.axhline(0.25, color="orange", linestyle="--", label='Critical Ri')
 # ax.axvline(sunrise,color="purple",linestyle="--",linewidth=1.5,label='Sunrise')
 # ax.axvline(sunset,color="black",linestyle="--",linewidth=1.5,label='Sunset')
 # ax.legend(loc="lower right")
 # plt.title("20 July, 2024")
 # plt.xlabel("UTC Time")
-# plt.ylabel("Bulk Richardson number between 60-200 m")
+# plt.ylabel("Bulk Richardson number between 40-60 m")
+# plt.tight_layout()
+# plt.show()
+
+# BulkRi_hub.plot(x="time")
+# ax = plt.gca()
+# ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))  # only show hours
+# ax.axhline(0.25, color="orange", linestyle="--", label='Critical Ri')
+# ax.axvline(sunrise,color="purple",linestyle="--",linewidth=1.5,label='Sunrise')
+# ax.axvline(sunset,color="black",linestyle="--",linewidth=1.5,label='Sunset')
+# ax.legend(loc="lower right")
+# plt.title("20 July, 2024")
+# plt.xlabel("UTC Time")
+# plt.ylabel("Bulk Richardson number between 120-160 m")
 # plt.tight_layout()
 # plt.show()
