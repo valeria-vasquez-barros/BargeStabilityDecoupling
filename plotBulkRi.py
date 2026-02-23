@@ -43,8 +43,10 @@ data1 = xr.open_dataset(filepath1,decode_times = "true")
 filepath2 = r"C:\Users\valer\Documents\WFIP3\barg.lidar.z02.a0\downloader\barg.lidar.z02.a0.20240720.120000.sta.nc"
 data2 = xr.open_dataset(filepath2,decode_times = "true")
 
-ws1 = data1["wind_speed"].sel(time = slice("2024-07-20 00:00:00","2024-07-20 23:50:50"))
-ws2 = data2["wind_speed"].sel(time = slice("2024-07-20 00:00:00","2024-07-20 23:50:50"))
+ws1 = data1["wind_speed"]
+# .sel(time = slice("2024-07-20 00:00:00","2024-07-20 23:50:50"))
+ws2 = data2["wind_speed"]
+# .sel(time = slice("2024-07-20 00:00:00","2024-07-20 23:50:50"))
 wind_speed = xr.concat([ws1,ws2],dim="time").sortby("time")
 
 wd1 = np.deg2rad(data1["wind_direction"])
