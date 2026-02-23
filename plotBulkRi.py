@@ -16,8 +16,10 @@ data0 = xr.open_dataset(filepath0,decode_times = "true")
 data_0 = data0.copy()
 data_0 = data_0.assign_coords(height = data_0["height"] * 1000)
 data_0["height"].attrs["units"] = "m"
-theta = data_0["theta"].sel(height = slice(40,300), time = slice("2024-07-20 00:00:00","2024-07-20 23:50:50"))
-temp = data_0["temperature"].sel(height = slice(40,300),time = slice("2024-07-20 00:00:00","2024-07-20 23:50:50"))
+theta = data_0["theta"].sel(height = slice(40,300))
+                            # time = slice("2024-07-20 00:00:00","2024-07-20 23:50:50"))
+temp = data_0["temperature"].sel(height = slice(40,300))
+                                 # ,time = slice("2024-07-20 00:00:00","2024-07-20 23:50:50"))
 height = data_0["height"].sel(height = slice(40,300))
 
 # extrapolate temp data
@@ -45,8 +47,10 @@ ws1 = data1["wind_speed"].sel(time = slice("2024-07-20 00:00:00","2024-07-20 23:
 ws2 = data2["wind_speed"].sel(time = slice("2024-07-20 00:00:00","2024-07-20 23:50:50"))
 wind_speed = xr.concat([ws1,ws2],dim="time").sortby("time")
 
-wd1 = np.deg2rad(data1["wind_direction"]).sel(time = slice("2024-07-20 00:00:00","2024-07-20 23:50:50"))
-wd2 = np.deg2rad(data2["wind_direction"]).sel(time = slice("2024-07-20 00:00:00","2024-07-20 23:50:50"))
+wd1 = np.deg2rad(data1["wind_direction"])
+# .sel(time = slice("2024-07-20 00:00:00","2024-07-20 23:50:50"))
+wd2 = np.deg2rad(data2["wind_direction"])
+# .sel(time = slice("2024-07-20 00:00:00","2024-07-20 23:50:50"))
 wind_direction = xr.concat([wd1,wd2],dim="time").sortby("time")
 
 uGeo = -wind_speed * np.sin(wind_direction)
@@ -70,8 +74,8 @@ deltaTheta = theta_f - theta_i # K
 temp_i = tempExt.sel(height=h_i)
 temp_f = tempExt.sel(height=h_f)
 dTemp = temp_f - temp_i
-# avgTemp_hub = dTemp_hub/dZ_hub + 273.15 # K, apparently this could be a lapse rate?
-avgTemp = (temp_i+temp_f)/2 # K
+avgTemp = dTemp/dZ + 273.15 # K, apparently this could be a lapse rate?
+# avgTemp = (temp_i+temp_f)/2 # K
 
 # 4) change in u,v over heights
 u_i = uGeo.sel(height=h_i)
@@ -91,8 +95,8 @@ BulkRi = num1*num3
 fig, ax = plt.subplots(figsize=(8,4))
 BulkRi.plot(ax=ax)
 
-ax.set_xlim(BulkRi.time.min().values,BulkRi.time.max().values)
-ax.set_ylim(-1, 1)
+# ax.set_xlim(BulkRi.time.min().values,BulkRi.time.max().values)
+# ax.set_ylim(-1, 1)
 ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))
 ax.axhline(0.25, linestyle="--", label='Critical Ri')
 # ax.axvline(sunrise, linestyle="--", label='Sunrise')

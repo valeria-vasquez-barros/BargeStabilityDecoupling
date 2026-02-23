@@ -16,19 +16,41 @@ import matplotlib.dates as mdates
 # Open the data files
 filepathAssist = r"C:\Users\valer\Documents\WFIP3\barg.assist.tropoe.z01.combined.nc"
 filepathLidar = r"C:\Users\valer\Documents\WFIP3\lidar.test\barg.lidar.z02.combined.nc"
+testAssist = r"C:\Users\valer\Documents\WFIP3\barg.assist.tropoe.z01.c1\barg.assist.tropoe.z01.c1.20240715.000005.nc"
+testLidar = r"C:\Users\valer\Documents\WFIP3\barg.lidar.z02.a0\downloader\barg.lidar.z02.a0.20240715.001000.sta.nc"
 dataAssist = xr.open_dataset(filepathAssist,decode_times = "true")
 dataLidar = xr.open_dataset(filepathLidar,decode_times="true")
+dataControlAssist = xr.open_dataset(testAssist,decode_times = "true")
+dataControlLidar = xr.open_dataset(testLidar,decode_times = "true")
+dataControlAssist = dataControlAssist.assign_coords(height = dataControlAssist["height"] * 1000)
+dataControlAssist["time"]=dataControlAssist["time"].dt.floor("10min")
 
 # Grab theta, temp variables from combined assist file
-#.sel(time=slice("2024-07-20 00:00:00","2024-07-20 23:50:50"))
-theta = dataAssist["theta"].sel(time=slice("2024-07-20 00:00:00","2024-07-20 23:50:50"))
-temp = dataAssist["temperature"].sel(time=slice("2024-07-20 00:00:00","2024-07-20 23:50:50"))
+theta = dataAssist["theta"].sel(time=slice("2024-07-15 00:00:00","2024-07-15 23:50:50"))
+temp = dataAssist["temperature"].sel(time=slice("2024-07-15 00:00:00","2024-07-15 23:50:50"))
 dTheta = theta.differentiate("height")
+
+thetaC = dataControlAssist["theta"].sel(time=slice("2024-07-15 00:00:00","2024-07-15 23:50:50"))
+tempC = dataControlAssist["temperature"].sel(time=slice("2024-07-15 00:00:00","2024-07-15 23:50:50"))
+thetaExt = thetaC.interp(height = np.linspace(40,300,14),kwargs={"fill_value":"extrapolate"})
+tempExt = tempC.interp(height = np.linspace(40,300,14),kwargs={"fill_value":"extrapolate"})
+dThetaC = thetaExt.differentiate("height")
 
 # Compare "near-surface" and "hub-height"
 dTheta_surf = dTheta.sel(height=slice(40,60))
 dTheta_hub = dTheta.sel(height=slice(120,160))
 dTheta_times = dTheta.time
+
+dThetaC_surf = dThetaC.sel(height=slice(40,60))
+dThetaC_hub = dThetaC.sel(height=slice(120,160))
+dThetaC_times = dThetaC.time
+
+# collect sunrise/sunset info
+location = LocationInfo(latitude=dataAssist.VIP_station_lat, longitude=dataAssist.VIP_station_lon, timezone="UTC")
+date = pd.to_datetime(dataAssist.time.values[0])
+s=sun(location.observer, date=date)
+sunrise = s["sunrise"]
+sunset = s["sunset"]
 
 def detect_staticdecoupling(dTheta_surf,dTheta_hub):
     
@@ -49,14 +71,44 @@ def detect_staticdecoupling(dTheta_surf,dTheta_hub):
         }
 
 events = detect_staticdecoupling(dTheta_surf,dTheta_hub)
-print(events)
+eventsC = detect_staticdecoupling(dThetaC_surf,dThetaC_hub)
 
-# collect sunrise/sunset info
-location = LocationInfo(latitude=dataAssist.VIP_station_lat, longitude=dataAssist.VIP_station_lon, timezone="UTC")
-date = pd.to_datetime(dataAssist.time.values[0])
-s=sun(location.observer, date=date)
-sunrise = s["sunrise"]
-sunset = s["sunset"]
+print(np.array_equal(
+    events["statically stable near surface and statically unstable near hub:"],
+    eventsC["statically stable near surface and statically unstable near hub:"]
+))
+print(np.array_equal(
+    events["statically unstable near surface and statically stable near hub:"],
+    eventsC["statically unstable near surface and statically stable near hub:"]
+))
+
+# plot dTheta along height and time:
+plt.figure(figsize=(10, 5))
+dTheta_surf.plot(x="time", y="height", cmap="coolwarm")
+ax = plt.gca()
+ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))  # only show hours
+ax.axvline(sunrise,color="purple",linestyle="--",linewidth=1.5,label='Sunrise')
+ax.axvline(sunset,color="black",linestyle="--",linewidth=1.5,label='Sunset')
+ax.legend(loc="upper right")
+plt.title("15 July, 2024 [combined]")
+plt.xlabel("UTC Time")
+plt.ylabel("Height (m)")
+plt.tight_layout()
+plt.show()
+
+# plot dTheta along height and time:
+plt.figure(figsize=(10, 5))
+dThetaC_surf.plot(x="time", y="height", cmap="coolwarm")
+ax = plt.gca()
+ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))  # only show hours
+ax.axvline(sunrise,color="purple",linestyle="--",linewidth=1.5,label='Sunrise')
+ax.axvline(sunset,color="black",linestyle="--",linewidth=1.5,label='Sunset')
+ax.legend(loc="upper right")
+plt.title("15 July, 2024 [individual]")
+plt.xlabel("UTC Time")
+plt.ylabel("Height (m)")
+plt.tight_layout()
+plt.show()
 
 # grab wind speed, wind direction from combined lidar file
 wind_speed = dataLidar["wind_speed"].sel(time=slice("2024-07-20 00:00:00","2024-07-20 23:50:50"))
@@ -151,34 +203,6 @@ def detect_dynamicdecoupling(BulkRi_surf,BulkRi_hub):
 devents = detect_dynamicdecoupling(BulkRi_surf,BulkRi_hub)
 print(devents)
 
-# plot dTheta along height and time:
-plt.figure(figsize=(10, 5))
-dTheta_surf.plot(x="time", y="height", cmap="coolwarm")
-ax = plt.gca()
-ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))  # only show hours
-ax.axvline(sunrise,color="purple",linestyle="--",linewidth=1.5,label='Sunrise')
-ax.axvline(sunset,color="black",linestyle="--",linewidth=1.5,label='Sunset')
-ax.legend(loc="upper right")
-plt.title("20 July, 2024")
-plt.xlabel("UTC Time")
-plt.ylabel("Height (m)")
-plt.tight_layout()
-plt.show()
-
-# plot dTheta along height and time:
-plt.figure(figsize=(10, 5))
-dTheta_hub.plot(x="time", y="height", cmap="coolwarm")
-ax = plt.gca()
-ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))  # only show hours
-ax.axvline(sunrise,color="purple",linestyle="--",linewidth=1.5,label='Sunrise')
-ax.axvline(sunset,color="black",linestyle="--",linewidth=1.5,label='Sunset')
-ax.legend(loc="upper right")
-plt.title("20 July, 2024")
-plt.xlabel("UTC Time")
-plt.ylabel("Height (m)")
-plt.tight_layout()
-plt.show()
-
 # # plot wind speed along height and time
 # fig,ax = plt.subplots(figsize=(10,5))
 # T,Z = np.meshgrid(uGeo["time"],uGeo["height"],indexing="ij")
@@ -191,7 +215,7 @@ plt.show()
 # plt.show()
 
 # plot surface Bulk Richardson number
-fig, ax = plt.subplots(figsize=(8,4))
+fig, ax = plt.subplots(figsize=(5,4))
 BulkRi_surf.plot(ax=ax)
 
 ax.set_xlim(BulkRi_surf.time.min().values,BulkRi_surf.time.max().values)
@@ -209,7 +233,7 @@ plt.tight_layout()
 plt.show()
 
 # plot hub height Bulk Richardson number
-fig, ax = plt.subplots(figsize=(8,4))
+fig, ax = plt.subplots(figsize=(5,4))
 BulkRi_hub.plot(ax=ax)
 
 ax.set_xlim(BulkRi_hub.time.min().values,BulkRi_hub.time.max())
