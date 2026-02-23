@@ -71,16 +71,16 @@ def detect_staticdecoupling(dTheta_surf,dTheta_hub):
         }
 
 events = detect_staticdecoupling(dTheta_surf,dTheta_hub)
-eventsC = detect_staticdecoupling(dThetaC_surf,dThetaC_hub)
+# eventsC = detect_staticdecoupling(dThetaC_surf,dThetaC_hub)
 
-print(np.array_equal(
-    events["statically stable near surface and statically unstable near hub:"],
-    eventsC["statically stable near surface and statically unstable near hub:"]
-))
-print(np.array_equal(
-    events["statically unstable near surface and statically stable near hub:"],
-    eventsC["statically unstable near surface and statically stable near hub:"]
-))
+# print(np.array_equal(
+#     events["statically stable near surface and statically unstable near hub:"],
+#     eventsC["statically stable near surface and statically unstable near hub:"]
+# ))
+# print(np.array_equal(
+#     events["statically unstable near surface and statically stable near hub:"],
+#     eventsC["statically unstable near surface and statically stable near hub:"]
+# ))
 
 # plot dTheta along height and time:
 plt.figure(figsize=(10, 5))
@@ -111,12 +111,41 @@ plt.tight_layout()
 plt.show()
 
 # grab wind speed, wind direction from combined lidar file
-wind_speed = dataLidar["wind_speed"].sel(time=slice("2024-07-20 00:00:00","2024-07-20 23:50:50"))
-wind_direction = dataLidar["wind_direction"].sel(time=slice("2024-07-20 00:00:00","2024-07-20 23:50:50"))
+wind_speed = dataLidar["wind_speed"].sel(time=slice("2024-07-15 00:10:00","2024-07-15 23:50:50"))
+wind_direction = np.deg2rad(dataLidar["wind_direction"].sel(time=slice("2024-07-15 00:10:00","2024-07-15 23:50:50")))
+
+wind_speedC = dataControlLidar["wind_speed"].sel(time=slice("2024-07-15 00:10:00","2024-07-15 23:50:50"))
+wind_directionC = np.deg2rad(dataControlLidar["wind_direction"].sel(time=slice("2024-07-15 00:10:00","2024-07-15 23:50:50")))
 
 # calculate u and v
 uGeo = -wind_speed * np.sin(wind_direction)
 vGeo = -wind_speed * np.cos(wind_direction)
+sGeo = np.sqrt(uGeo**2+vGeo**2)
+
+uGeoC = -wind_speedC * np.sin(wind_directionC)
+vGeoC = -wind_speedC * np.cos(wind_directionC)
+sGeoC = np.sqrt(uGeoC**2+vGeoC**2)
+
+# plot wind speed along height and time
+fig,ax = plt.subplots(figsize=(10,5))
+T,Z = np.meshgrid(uGeo["time"],uGeo["height"],indexing="ij")
+q = ax.quiver(T[::5],Z[::5],uGeo[::5],vGeo[::5],sGeo[::5])
+plt.colorbar(q,ax=ax,label="Wind Speed (m/s)")
+ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))  # only show hours
+ax.set_xlabel("UTC Time")
+ax.set_ylabel("Height (m)")
+ax.set_title("15 July, 2024 [combined]")
+plt.show()
+
+fig,ax = plt.subplots(figsize=(10,5))
+T,Z = np.meshgrid(uGeoC["time"],uGeoC["height"],indexing="ij")
+q = ax.quiver(T[::5],Z[::5],uGeoC[::5],vGeoC[::5],sGeoC[::5])
+plt.colorbar(q,ax=ax,label="Wind Speed (m/s)")
+ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))  # only show hours
+ax.set_xlabel("UTC Time")
+ax.set_ylabel("Height (m)")
+ax.set_title("15 July, 2024 [individual]")
+plt.show()
 
 # calculate surface Bulk Richardson number:
 # 1) establish height difference
@@ -203,23 +232,12 @@ def detect_dynamicdecoupling(BulkRi_surf,BulkRi_hub):
 devents = detect_dynamicdecoupling(BulkRi_surf,BulkRi_hub)
 print(devents)
 
-# # plot wind speed along height and time
-# fig,ax = plt.subplots(figsize=(10,5))
-# T,Z = np.meshgrid(uGeo["time"],uGeo["height"],indexing="ij")
-# q = ax.quiver(T[::5],Z[::5],uGeo[::5],vGeo[::5],sGeo[::5])
-# plt.colorbar(q,ax=ax,label="Wind Speed (m/s)")
-# ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))  # only show hours
-# ax.set_xlabel("UTC Time")
-# ax.set_ylabel("Height (m)")
-# ax.set_title("Wind Vector Field [combined lidar file] on 20 July, 2024")
-# plt.show()
-
 # plot surface Bulk Richardson number
 fig, ax = plt.subplots(figsize=(5,4))
 BulkRi_surf.plot(ax=ax)
 
 ax.set_xlim(BulkRi_surf.time.min().values,BulkRi_surf.time.max().values)
-ax.set_ylim(-1, 1)
+# ax.set_ylim(-1, 1)
 ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))
 ax.axhline(0.25, linestyle="--", label='Critical Ri')
 # ax.axvline(sunrise, linestyle="--", label='Sunrise')
