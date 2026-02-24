@@ -30,8 +30,10 @@ theta = dataAssist["theta"].sel(time=slice("2024-07-15 00:10:00","2024-07-15 23:
 temp = dataAssist["temperature"].sel(time=slice("2024-07-15 00:10:00","2024-07-15 23:50:50"))
 dTheta = theta.differentiate("height")
 
-thetaC = dataControlAssist["theta"].sel(time=slice("2024-07-15 00:10:00","2024-07-15 23:50:50"))
-tempC = dataControlAssist["temperature"].sel(time=slice("2024-07-15 00:10:00","2024-07-15 23:50:50"))
+thetaC = dataControlAssist["theta"].sel(height=slice(40,300),
+                                        time=slice("2024-07-15 00:10:00","2024-07-15 23:50:50"))
+tempC = dataControlAssist["temperature"].sel(height=slice(40,300),
+                                             time=slice("2024-07-15 00:10:00","2024-07-15 23:50:50"))
 thetaExt = thetaC.interp(height = np.linspace(40,300,14),kwargs={"fill_value":"extrapolate"})
 tempExt = tempC.interp(height = np.linspace(40,300,14),kwargs={"fill_value":"extrapolate"})
 dThetaC = thetaExt.differentiate("height")
@@ -71,16 +73,7 @@ def detect_staticdecoupling(dTheta_surf,dTheta_hub):
         }
 
 events = detect_staticdecoupling(dTheta_surf,dTheta_hub)
-# eventsC = detect_staticdecoupling(dThetaC_surf,dThetaC_hub)
-
-# print(np.array_equal(
-#     events["statically stable near surface and statically unstable near hub:"],
-#     eventsC["statically stable near surface and statically unstable near hub:"]
-# ))
-# print(np.array_equal(
-#     events["statically unstable near surface and statically stable near hub:"],
-#     eventsC["statically unstable near surface and statically stable near hub:"]
-# ))
+eventsC = detect_staticdecoupling(dThetaC_surf,dThetaC_hub)
 
 # plot dTheta along height and time:
 plt.figure(figsize=(10, 5))
@@ -220,7 +213,7 @@ temphub_i = temp.sel(height=hhub_i)
 temphub_f = temp.sel(height=hhub_f)
 dTemp_hub = temphub_f - temphub_i
 # avgTemp_hub = dTemp_hub/dZ_hub + 273.15 # K, apparently this could be a lapse rate?
-avgTemp_hub = (tempsurf_i+tempsurf_f)/2 # K
+avgTemp_hub = (temphub_i+temphub_f)/2 # K
 
 # 4) change in u,v over heights
 uhub_i = uGeo.sel(height=hhub_i)
@@ -236,6 +229,34 @@ num2_hub = deltaTheta_hub*dZ_hub
 sGeo_hub = (dU_hub**2+dV_hub**2)
 num3_hub = num2_hub/sGeo_hub
 BulkRi_hub = num1_hub*num3_hub
+
+
+# 2) change in potential temperature
+thetaChub_i = thetaExt.sel(height=hhub_i)
+thetaChub_f = thetaExt.sel(height=hhub_f)
+deltaThetaC_hub = thetaChub_f - thetaChub_i # K
+
+# 3) change in temperature
+tempChub_i = tempExt.sel(height=hhub_i)
+tempChub_f = tempExt.sel(height=hhub_f)
+dTempC_hub = tempChub_f - tempChub_i
+# avgTemp_hub = dTemp_hub/dZ_hub + 273.15 # K, apparently this could be a lapse rate?
+avgTempC_hub = (tempChub_i+tempChub_f)/2 # K
+
+# 4) change in u,v over heights
+uChub_i = uGeoC.sel(height=hhub_i)
+uChub_f = uGeoC.sel(height=hhub_f)
+dUC_hub = uChub_f - uChub_i
+vChub_i = vGeoC.sel(height=hhub_i)
+vChub_f = vGeoC.sel(height=hhub_f)
+dVC_hub = vChub_f - vChub_i
+
+# 5) final calculation
+num1C_hub = g/avgTempC_hub
+num2C_hub = deltaThetaC_hub*dZ_hub
+sGeoC_hub = (dUC_hub**2+dVC_hub**2)
+num3C_hub = num2C_hub/sGeoC_hub
+BulkRiC_hub = num1C_hub*num3C_hub
 
 def detect_dynamicdecoupling(BulkRi_surf,BulkRi_hub):
     
@@ -256,7 +277,16 @@ def detect_dynamicdecoupling(BulkRi_surf,BulkRi_hub):
         }
 
 devents = detect_dynamicdecoupling(BulkRi_surf,BulkRi_hub)
-print(devents)
+deventsC = detect_dynamicdecoupling(BulkRiC_surf, BulkRiC_hub)
+# print(devents)
+print(np.array_equal(
+    devents["dynamically stable near surface and statically unstable near hub:"],
+    deventsC["dynamically stable near surface and statically unstable near hub:"]
+))
+print(np.array_equal(
+    devents["dynamically unstable near surface and statically stable near hub:"],
+    deventsC["dynamically unstable near surface and statically stable near hub:"]
+))
 
 # plot surface Bulk Richardson number
 fig, ax = plt.subplots(figsize=(6,5))
@@ -276,7 +306,7 @@ plt.show()
 
 fig, ax = plt.subplots(figsize=(6,5))
 BulkRiC_surf.plot(ax=ax)
-ax.set_xlim(BulkRi_surf.time.min().values,BulkRi_surf.time.max().values)
+ax.set_xlim(BulkRiC_surf.time.min().values,BulkRiC_surf.time.max().values)
 # ax.set_ylim(-1, 1)
 ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))
 ax.axhline(0.25, linestyle="--", label='Critical Ri')
@@ -290,16 +320,30 @@ plt.tight_layout()
 plt.show()
 
 # plot hub height Bulk Richardson number
-fig, ax = plt.subplots(figsize=(5,4))
+fig, ax = plt.subplots(figsize=(6,5))
 BulkRi_hub.plot(ax=ax)
-
 ax.set_xlim(BulkRi_hub.time.min().values,BulkRi_hub.time.max())
-ax.set_ylim(-1, 1)
+# ax.set_ylim(-1, 1)
 ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))
 ax.axhline(0.25, linestyle="--", label='Critical Ri')
 # ax.axvline(sunrise, linestyle="--", label='Sunrise')
 # ax.axvline(sunset, linestyle="--", label='Sunset')
+ax.set_title("20 July 2024 (120-160m)")
+ax.set_xlabel("UTC Time")
+ax.set_ylabel("Bulk Richardson number")
+ax.legend()
+plt.tight_layout()
+plt.show()
 
+# plot hub height Bulk Richardson number
+fig, ax = plt.subplots(figsize=(6,5))
+BulkRiC_hub.plot(ax=ax)
+ax.set_xlim(BulkRiC_hub.time.min().values,BulkRiC_hub.time.max())
+# ax.set_ylim(-1, 1)
+ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))
+ax.axhline(0.25, linestyle="--", label='Critical Ri')
+# ax.axvline(sunrise, linestyle="--", label='Sunrise')
+# ax.axvline(sunset, linestyle="--", label='Sunset')
 ax.set_title("20 July 2024 (120-160m)")
 ax.set_xlabel("UTC Time")
 ax.set_ylabel("Bulk Richardson number")
