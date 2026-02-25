@@ -16,24 +16,26 @@ import matplotlib.dates as mdates
 # Open the data files
 filepathAssist = r"C:\Users\valer\Documents\WFIP3\barg.assist.tropoe.z01.combined.nc"
 filepathLidar = r"C:\Users\valer\Documents\WFIP3\lidar.test\barg.lidar.z02.combined.nc"
-testAssist = r"C:\Users\valer\Documents\WFIP3\barg.assist.tropoe.z01.c1\barg.assist.tropoe.z01.c1.20240715.000005.nc"
-testLidar = r"C:\Users\valer\Documents\WFIP3\barg.lidar.z02.a0\downloader\barg.lidar.z02.a0.20240715.001000.sta.nc"
+testAssist = r"C:\Users\valer\Documents\WFIP3\barg.assist.tropoe.z01.c1\barg.assist.tropoe.z01.c1.20240720.000005.nc"
+testLidar = r"C:\Users\valer\Documents\WFIP3\barg.lidar.z02.a0\downloader\barg.lidar.z02.a0.20240720.001000.sta.nc"
+testLidar2 = r"C:\Users\valer\Documents\WFIP3\barg.lidar.z02.a0\downloader\barg.lidar.z02.a0.20240720.120000.sta.nc"
 dataAssist = xr.open_dataset(filepathAssist,decode_times = "true")
 dataLidar = xr.open_dataset(filepathLidar,decode_times="true")
 dataControlAssist = xr.open_dataset(testAssist,decode_times = "true")
 dataControlLidar = xr.open_dataset(testLidar,decode_times = "true")
+dataControlLidar2 = xr.open_dataset(testLidar2,decode_times="true")
 dataControlAssist = dataControlAssist.assign_coords(height = dataControlAssist["height"] * 1000)
 dataControlAssist["time"]=dataControlAssist["time"].dt.floor("10min")
 
 # Grab theta, temp variables from combined assist file
-theta = dataAssist["theta"].sel(time=slice("2024-07-15 00:10:00","2024-07-15 23:50:50"))
-temp = dataAssist["temperature"].sel(time=slice("2024-07-15 00:10:00","2024-07-15 23:50:50"))
+theta = dataAssist["theta"].sel(time=slice("2024-07-20 00:10:00","2024-07-20 23:50:50"))
+temp = dataAssist["temperature"].sel(time=slice("2024-07-20 00:10:00","2024-07-20 23:50:50"))
 dTheta = theta.differentiate("height")
 
 thetaC = dataControlAssist["theta"].sel(height=slice(40,300),
-                                        time=slice("2024-07-15 00:10:00","2024-07-15 23:50:50"))
+                                        time=slice("2024-07-20 00:10:00","2024-07-20 23:50:50"))
 tempC = dataControlAssist["temperature"].sel(height=slice(40,300),
-                                             time=slice("2024-07-15 00:10:00","2024-07-15 23:50:50"))
+                                             time=slice("2024-07-20 00:10:00","2024-07-20 23:50:50"))
 thetaExt = thetaC.interp(height = np.linspace(40,300,14),kwargs={"fill_value":"extrapolate"})
 tempExt = tempC.interp(height = np.linspace(40,300,14),kwargs={"fill_value":"extrapolate"})
 dThetaC = thetaExt.differentiate("height")
@@ -94,7 +96,7 @@ ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))  # only show hours
 ax.axvline(sunrise,color="purple",linestyle="--",linewidth=1.5,label='Sunrise')
 ax.axvline(sunset,color="black",linestyle="--",linewidth=1.5,label='Sunset')
 ax.legend(loc="upper right")
-plt.title("15 July, 2024 [combined]")
+plt.title("20 July, 2024 [combined]")
 plt.xlabel("UTC Time")
 plt.ylabel("Height (m)")
 plt.tight_layout()
@@ -108,7 +110,7 @@ ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))  # only show hours
 ax.axvline(sunrise,color="purple",linestyle="--",linewidth=1.5,label='Sunrise')
 ax.axvline(sunset,color="black",linestyle="--",linewidth=1.5,label='Sunset')
 ax.legend(loc="upper right")
-plt.title("15 July, 2024 [individual]")
+plt.title("20 July, 2024 [individual]")
 plt.xlabel("UTC Time")
 plt.ylabel("Height (m)")
 plt.tight_layout()
