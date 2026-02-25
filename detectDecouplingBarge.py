@@ -74,6 +74,17 @@ def detect_staticdecoupling(dTheta_surf,dTheta_hub):
 
 events = detect_staticdecoupling(dTheta_surf,dTheta_hub)
 eventsC = detect_staticdecoupling(dThetaC_surf,dThetaC_hub)
+print(events)
+
+# must print true/true
+print(np.array_equal(
+    events["statically stable near surface and statically unstable near hub:"],
+    eventsC["statically stable near surface and statically unstable near hub:"]
+))
+print(np.array_equal(
+    events["statically unstable near surface and statically stable near hub:"],
+    eventsC["statically unstable near surface and statically stable near hub:"]
+))
 
 # plot dTheta along height and time:
 plt.figure(figsize=(10, 5))
@@ -272,20 +283,21 @@ def detect_dynamicdecoupling(BulkRi_surf,BulkRi_hub):
     dtimes2 = BulkRi_surf.time.where(dlogic2,drop=True)
     
     return {
-        "dynamically stable near surface and statically unstable near hub:": dtimes1,
-        "dynamically unstable near surface and statically stable near hub:": dtimes2,
+        "dynamically stable near surface and dynamically unstable near hub:": dtimes1,
+        "dynamically unstable near surface and dynamically stable near hub:": dtimes2,
         }
 
 devents = detect_dynamicdecoupling(BulkRi_surf,BulkRi_hub)
 deventsC = detect_dynamicdecoupling(BulkRiC_surf, BulkRiC_hub)
-# print(devents)
+print(devents)
+# must print true/true
 print(np.array_equal(
-    devents["dynamically stable near surface and statically unstable near hub:"],
-    deventsC["dynamically stable near surface and statically unstable near hub:"]
+    devents["dynamically stable near surface and dynamically unstable near hub:"],
+    deventsC["dynamically stable near surface and dynamically unstable near hub:"]
 ))
 print(np.array_equal(
-    devents["dynamically unstable near surface and statically stable near hub:"],
-    deventsC["dynamically unstable near surface and statically stable near hub:"]
+    devents["dynamically unstable near surface and dynamically stable near hub:"],
+    deventsC["dynamically unstable near surface and dynamically stable near hub:"]
 ))
 
 # plot surface Bulk Richardson number
@@ -328,7 +340,7 @@ ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))
 ax.axhline(0.25, linestyle="--", label='Critical Ri')
 # ax.axvline(sunrise, linestyle="--", label='Sunrise')
 # ax.axvline(sunset, linestyle="--", label='Sunset')
-ax.set_title("20 July 2024 (120-160m)")
+ax.set_title("15 July 2024 (120-160m)")
 ax.set_xlabel("UTC Time")
 ax.set_ylabel("Bulk Richardson number")
 ax.legend()
@@ -344,7 +356,7 @@ ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))
 ax.axhline(0.25, linestyle="--", label='Critical Ri')
 # ax.axvline(sunrise, linestyle="--", label='Sunrise')
 # ax.axvline(sunset, linestyle="--", label='Sunset')
-ax.set_title("20 July 2024 (120-160m)")
+ax.set_title("15 July 2024 (120-160m)")
 ax.set_xlabel("UTC Time")
 ax.set_ylabel("Bulk Richardson number")
 ax.legend()
