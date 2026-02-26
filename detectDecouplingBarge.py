@@ -436,3 +436,14 @@ plt.title("Dynamic Stability Quadrant Analysis")
 plt.legend()
 plt.show()
 
+# duration flag:
+decoupled = Q2 | Q4
+decouple_flag = decoupled.astype(int)
+groups = (decouple_flag.diff("time") != 0).cumsum("time")
+
+for num in np.unique(groups):
+    segment = decouple_flag.where(groups==num,drop=True)
+    if segment.mean() == 1:
+        duration = len(segment)
+        if duration >= 18:
+            print(segment.time.values[0], "to", segment.time.values[-1])
