@@ -41,18 +41,29 @@ dTheta = theta.differentiate("height")
 # dThetaC = thetaExt.differentiate("height")
 
 # Compare "near-surface" and "hub-height"
-dTheta_surf = dTheta.sel(height=slice(40,60)).mean("height")
-dTheta_hub = dTheta.sel(height=slice(120,160)).mean("height")
+dTheta_surf = dTheta.sel(height=slice(40,60))
+dTheta_hub = dTheta.sel(height=slice(120,160))
 dTheta_times = dTheta.time
 
-# quadrant analysis:
+# static stability quadrant analysis:
+dTheta_surf_mean = dTheta_surf.mean("height")
+dTheta_hub_mean = dTheta_hub.mean("height")
+Q1 = (dTheta_surf_mean > 0) & (dTheta_hub_mean > 0)
+Q2 = (dTheta_surf_mean > 0) & (dTheta_hub_mean < 0)
+Q3 = (dTheta_surf_mean < 0) & (dTheta_hub_mean < 0)
+Q4 = (dTheta_surf_mean < 0) & (dTheta_hub_mean > 0)
+
 plt.figure(figsize=(6,6))
-plt.scatter(dTheta_surf,dTheta_hub,alpha=0.4)
+plt.scatter(dTheta_surf_mean[Q1],dTheta_hub_mean[Q1],color='green',alpha=0.4,label="Coupled Stability")
+plt.scatter(dTheta_surf_mean[Q2],dTheta_hub_mean[Q2],color='orange',alpha=0.4,label="Surface Stable - Hub Unstable")
+plt.scatter(dTheta_surf_mean[Q3],dTheta_hub_mean[Q3],color='blue',alpha=0.4,label="Coupled Instability")
+plt.scatter(dTheta_surf_mean[Q4],dTheta_hub_mean[Q4],color='red',alpha=0.4,label="Surface Unstable - Hub Stable")
 plt.axhline(0,color='k')
 plt.axvline(0,color='k')
 plt.xlabel("Surface (40-60m) Static Stability")
 plt.ylabel("Hub (120-160m) Static Stability")
 plt.title("Static Stability Quadrant Analysis")
+plt.legend()
 plt.show()
 
 # dThetaC_surf = dThetaC.sel(height=slice(40,60))
