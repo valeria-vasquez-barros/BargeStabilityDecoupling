@@ -19,9 +19,21 @@ filepathLidar = r"C:\Users\valer\Documents\WFIP3\lidar.test\barg.lidar.z02.combi
 dataAssist = xr.open_dataset(filepathAssist,decode_times = "true")
 dataLidar = xr.open_dataset(filepathLidar,decode_times="true")
 
+# Specify days on station
+dates1 = pd.date_range(start="2024-06-17 05:00:00",end="2024-06-23 11:00:00",freq="10T")
+dates2 = pd.date_range(start="2024-06-29 05:00:00",end="2024-08-08 11:00:00",freq="10T")
+dates3 = pd.date_range(start="2024-08-23 06:00:00",end="2024-09-28 10:00:00",freq="10T")
+valid = dates1.union(dates2).union(dates3)
+
+onStationA = dataAssist.time.isin(valid)
+onStationL = dataLidar.time.isin(valid)
+
+dataAssist = dataAssist.where(onStationA)
+dataLidar = dataLidar.where(onStationL)
+
 # Grab theta, temp variables from combined assist file
-theta = dataAssist["theta"].sel(time=slice("2024-07-04 00:00:00","2024-07-04 23:50:00"))
-temp = dataAssist["temperature"].sel(time=slice("2024-07-04 00:00:00","2024-07-04 23:50:00"))
+theta = dataAssist["theta"]
+temp = dataAssist["temperature"]
 dTheta = theta.differentiate("height")
 
 # Compare "near-surface" and "hub-height"
@@ -32,16 +44,22 @@ dTheta_times = dTheta.time
 # static stability quadrant analysis:
 dTheta_surf_mean = dTheta_surf.mean("height")
 dTheta_hub_mean = dTheta_hub.mean("height")
-Q1 = (dTheta_surf_mean > 0) & (dTheta_hub_mean > 0)
-Q2 = (dTheta_surf_mean > 0) & (dTheta_hub_mean < 0)
-Q3 = (dTheta_surf_mean < 0) & (dTheta_hub_mean < 0)
-Q4 = (dTheta_surf_mean < 0) & (dTheta_hub_mean > 0)
+
+valid2 = (
+    dTheta_surf_mean.notnull() &
+    dTheta_hub_mean.notnull()
+)
+
+Q1 = ((dTheta_surf_mean > 0) & (dTheta_hub_mean > 0))
+Q2 = ((dTheta_surf_mean > 0) & (dTheta_hub_mean < 0))
+Q3 = ((dTheta_surf_mean < 0) & (dTheta_hub_mean < 0))
+Q4 = ((dTheta_surf_mean < 0) & (dTheta_hub_mean > 0))
 
 plt.figure(figsize=(6,6))
-plt.scatter(dTheta_surf_mean[Q1],dTheta_hub_mean[Q1],color='black',alpha=0.4,label="Coupled Stability")
-plt.scatter(dTheta_surf_mean[Q2],dTheta_hub_mean[Q2],color='blue',alpha=0.4,label="Surface Stable - Hub Unstable")
-plt.scatter(dTheta_surf_mean[Q3],dTheta_hub_mean[Q3],color='gray',alpha=0.4,label="Coupled Instability")
-plt.scatter(dTheta_surf_mean[Q4],dTheta_hub_mean[Q4],color='red',alpha=0.4,label="Surface Unstable - Hub Stable")
+plt.scatter(dTheta_surf_mean.where(Q1&valid2),dTheta_hub_mean.where(Q1&valid2),color='black',alpha=0.4,label="Coupled Stability")
+plt.scatter(dTheta_surf_mean.where(Q2&valid2),dTheta_hub_mean.where(Q2&valid2),color='blue',alpha=0.4,label="Surface Stable - Hub Unstable")
+plt.scatter(dTheta_surf_mean.where(Q3&valid2),dTheta_hub_mean.where(Q3&valid2),color='gray',alpha=0.4,label="Coupled Instability")
+plt.scatter(dTheta_surf_mean.where(Q4&valid2),dTheta_hub_mean.where(Q4&valid2),color='red',alpha=0.4,label="Surface Unstable - Hub Stable")
 plt.axhline(0,color='k')
 plt.axvline(0,color='k')
 plt.xlabel("Surface (40-60m) Static Stability")
@@ -51,7 +69,7 @@ plt.legend()
 plt.show()
 
 # static decoupling occurrences:
-static_decoupled = Q2 | Q4
+static_decoupled = (Q2 | Q4).where(valid2)
 staticOverall_percent = 100*static_decoupled.mean()
 monthly_percent = 100*(static_decoupled.groupby("time.month").mean())
 print(f"{staticOverall_percent.values:.2f}% of the summer is statically decoupled")
@@ -113,8 +131,8 @@ print(events)
 # plt.show()
 
 # grab wind speed, wind direction from combined lidar file
-wind_speed = dataLidar["wind_speed"].sel(time=slice("2024-07-04 00:00:00","2024-07-04 23:50:00"))
-wind_direction = np.deg2rad(dataLidar["wind_direction"]).sel(time=slice("2024-07-04 00:00:00","2024-07-04 23:50:00"))
+wind_speed = dataLidar["wind_speed"]
+wind_direction = np.deg2rad(dataLidar["wind_direction"])
 
 # calculate u and v
 uGeo = -wind_speed * np.sin(wind_direction)
