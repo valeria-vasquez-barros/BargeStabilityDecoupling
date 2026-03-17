@@ -234,17 +234,32 @@ dtimes1,dtimes2 = detect_dynamicdecoupling(BulkRi_surf,BulkRi_hub)
 print(f"dynamically stable near surface and dynamically unstable near hub: {dtimes1}")
 print(f"dynamically unstable near surface and dynamically stable near hub: {dtimes2}")
 
-# find wind speed distribution during dynamic decoupling events
+# histograms summarizing decoupling events:
 decoupled_ws1 = wind_speed.sel(time=dtimes1).values.flatten() # stable surf, unstable hub
 decoupled_ws2 = wind_speed.sel(time=dtimes2).values.flatten() # unstable surf, stable hub
-# flatten because I don't care about when, I just want to summarize the wind speed frequencies
+plt.hist(decoupled_ws2,bins=80)
+plt.xlabel("Wind Speed (m/s)")
+plt.ylabel("Number of occurences (n)")
+plt.title("Wind speed distribution (unstable surf, stable hub)")
+plt.show()
+
 decoupled_wd1 = np.rad2deg(wind_direction.sel(time=dtimes1).values.flatten())
 decoupled_wd2 = np.rad2deg(wind_direction.sel(time=dtimes2).values.flatten())
-
-plt.hist(decoupled_wd1,bins=100)
-plt.xlabel("Wind direction (degrees)")
+plt.hist(decoupled_wd2,bins=80)
+plt.xlabel("Wind Direction (degrees)")
 plt.ylabel("Number of occurences (n)")
-plt.title("Wind direction distribution (stable surf, unstable hub)")
+plt.title("Wind direction distribution (unstable surf, stable hub)")
+plt.show()
+
+decoupled_times1 = dtimes1.dt.hour + dtimes1.dt.minute/60
+decoupled_times2 = dtimes2.dt.hour + dtimes2.dt.minute/60
+plt.hist(decoupled_times2,bins=24)
+plt.xlabel("UTC Time")
+plt.xlim(0,24)
+plt.xticks([2,4,6,8,10,12,14,16,18,20,22,24])
+plt.ylabel("Number of occurences (n)")
+plt.title("Occurrences throughout the day (unstable surf, stable hub)")
+plt.show()
 
 # # plot surface Bulk Richardson number:
 # fig, ax = plt.subplots(figsize=(6,5))
