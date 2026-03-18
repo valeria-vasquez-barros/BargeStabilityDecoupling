@@ -261,6 +261,27 @@ plt.ylabel("Number of occurences (n)")
 plt.title("Occurrences throughout the day (unstable surf, stable hub)")
 plt.show()
 
+# plot wind speeds based on which direction the wind blows in
+
+north2 = (decoupled_wd2 <= 45) | (decoupled_wd2 >= 315)
+east2 = (decoupled_wd2 > 45) & (decoupled_wd2 < 135)
+south2 = (decoupled_wd2 >= 135) & (decoupled_wd2 <= 225)
+west2 = (decoupled_wd2 > 225) & (decoupled_wd2 < 315)
+
+n_ws2 = decoupled_ws2[north2]
+e_ws2 = decoupled_ws2[east2]
+s_ws2 = decoupled_ws2[south2]
+w_ws2 = decoupled_ws2[west2]
+
+ws2_data = [n_ws2,e_ws2,s_ws2,w_ws2]
+
+plt.hist(ws2_data,bins=75,stacked=True)
+plt.xlabel("Wind Speed (m/s)")
+plt.ylabel("Number of occurrences (n)")
+plt.title("Wind speed by wind direction (unstable surf, stable hub")
+plt.legend(labels=["Northerly","Easterly","Southerly","Westerly"])
+plt.show()
+
 # # plot surface Bulk Richardson number:
 # fig, ax = plt.subplots(figsize=(6,5))
 # BulkRi_surf.plot(ax=ax)
