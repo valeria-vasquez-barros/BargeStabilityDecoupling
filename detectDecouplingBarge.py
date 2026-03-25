@@ -373,6 +373,33 @@ ax.set_title("Wind speed and direction (Coupled cases)")
 ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
 plt.show()
 
+coupledTimes = coupled_times.dt.hour + coupled_times.dt.minute/60
+night = (coupledTimes > 1) & (coupledTimes < 7)
+sunrising = (coupledTimes >= 7) & (coupledTimes <= 13)
+day = (coupledTimes > 13) & (coupledTimes < 19)
+sunsetting = (coupledTimes >= 19) | (coupledTimes <= 1)
+
+coupled_ws = wind_speed.sel(time=coupled_times)
+coupled_wd = np.rad2deg(wind_speed.sel(time=coupled_times))
+
+nightWS = coupled_ws.where(sunsetting).values.flatten()
+nightWD = coupled_wd.where(sunsetting).values.flatten()
+
+H,dir_edges,speed_edges = np.histogram2d(nightWD,nightWS,bins=[dir_bins,speed_bins])
+freq = H / H.sum()
+fig = plt.figure(figsize=(6,6))
+ax = plt.subplot(111,polar=True)
+colors = plt.cm.viridis(np.linspace(0,1,len(speed_bins)-1))
+for i in range(len(speed_bins)-1):
+    values = freq[:, i]
+    bars = ax.bar(rose_theta, values, width=rose_width, bottom=bottom, color=colors[i], label=f"{speed_bins[i]}-{speed_bins[i+1]} m/s")
+    bottom += values
+ax.set_theta_zero_location("N")
+ax.set_theta_direction(-1)
+ax.set_title("Wind speed and direction from 1900-0100 UTC (Coupled cases)")
+ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
+plt.show()
+
 # # plot surface Bulk Richardson number:
 # fig, ax = plt.subplots(figsize=(6,5))
 # BulkRi_surf.plot(ax=ax)
