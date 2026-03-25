@@ -10,7 +10,6 @@ import numpy as np
 import pandas as pd
 from astral import LocationInfo
 from astral.sun import sun
-from windrose import WindroseAxes
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
@@ -235,7 +234,6 @@ dtimes1,dtimes2 = detect_dynamicdecoupling(BulkRi_surf,BulkRi_hub)
 print(f"dynamically stable near surface and dynamically unstable near hub: {dtimes1}")
 print(f"dynamically unstable near surface and dynamically stable near hub: {dtimes2}")
 
-
 # wind speed during decoupling histogram
 decoupled_ws1 = wind_speed.sel(time=dtimes1).values.flatten() # stable surf, unstable hub
 decoupled_ws2 = wind_speed.sel(time=dtimes2).values.flatten() # unstable surf, stable hub
@@ -267,12 +265,6 @@ ax.set_theta_direction(-1)
 ax.set_title("Wind direction distribution (unstable surf, stable hub)")
 plt.show()
 
-# plt.hist(decoupled_wd2,bins=80)
-# plt.xlabel("Wind Direction (degrees)")
-# plt.ylabel("Number of occurences (n)")
-# plt.title("Wind direction distribution (unstable surf, stable hub)")
-# plt.show()
-
 # time of day during decoupling histogram
 decoupled_times1 = dtimes1.dt.hour + dtimes1.dt.minute/60
 decoupled_times2 = dtimes2.dt.hour + dtimes2.dt.minute/60
@@ -285,21 +277,7 @@ plt.ylabel("Number of occurences (n)")
 plt.title("Occurrences throughout the day (unstable surf, stable hub)")
 plt.show()
 
-# wind speed for each wind direction wind rose/histogram
-# northwest = (decoupled_wd1 > 270)
-# southwest = (decoupled_wd1 < 270) & (decoupled_wd1 > 180)
-
-# nw_ws = decoupled_ws1[northwest]
-# sw_ws = decoupled_ws1[southwest]
-# ws_data = [nw_ws,sw_ws]
-
-# plt.hist(ws_data,bins=50,stacked=True)
-# plt.xlabel("Wind Speed (m/s)")
-# plt.ylabel("Number of occurrences (n)")
-# plt.title("Wind speed by wind direction (stable surf, unstable hub")
-# plt.legend(labels=["Northwesterly","Southwesterly"])
-# plt.show()
-
+# wind rose
 speed_bins = [0,2,4,6,8,10,12,14,16]
 H,dir_edges,speed_edges = np.histogram2d(decoupled_wd2,decoupled_ws2,bins=[dir_bins,speed_bins])
 freq = H / H.sum()
@@ -317,7 +295,7 @@ ax.set_title("Wind speed and direction (unstable surf, stable hub)")
 ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
 plt.show()
 
-# plot wind speed based on time of day
+# wind rose for each time of day
 decoupled_ws2 = wind_speed.sel(time=dtimes2)
 decoupled_wd2 = np.rad2deg(wind_direction.sel(time=dtimes2))
 
@@ -367,39 +345,33 @@ ax.set_title("Wind speed and direction from 1300-2300 UTC (unstable surf, stable
 ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
 plt.show()
 
-# plt.hist(morews_data,bins=50,stacked=True)
-# plt.xlabel("Wind Speed (m/s)")
-# plt.ylabel("Number of occurences (n)")
-# plt.title("Wind speed throughout the day (unstable surf, stable hub)")
-# plt.legend(labels=["0100-0700 UTC","0700-1300 UTC","1300-1900 UTC","1900-0100 UTC"])
-# plt.show()
+# coupled cases mask
+all_times = wind_speed.time
+decoupTimes = dtimes1.to_index().union(dtimes2.to_index())
+decoupMask = all_times.isin(decoupTimes)
+coupledMask = ~ decoupMask
+coupled_times = all_times.where(coupledMask,drop=True)
 
-# plot wind direction based on time of day
-# decoupled_wd2 = np.rad2deg(wind_direction.sel(time=dtimes2))
+# plot coupled cases
+coupled_ws = wind_speed.sel(time=coupled_times).values.flatten()
+coupled_ws = coupled_ws[~np.isnan(coupled_ws)]
+coupled_wd = np.rad2deg(wind_direction.sel(time=coupled_times).values.flatten())
+coupled_wd = coupled_wd[~np.isnan(coupled_wd)]
 
-# night = (decoupled_times2 > 1) & (decoupled_times2 < 7)
-# sunrising = (decoupled_times2 >= 7) & (decoupled_times2 <= 13)
-# day = (decoupled_times2 > 13) & (decoupled_times2 < 19)
-# sunsetting = (decoupled_times2 >= 19) | (decoupled_times2 <= 1)
-
-# night_wd = decoupled_wd2.where(night)
-# sunrise_wd = decoupled_wd2.where(sunrising)
-# day_wd = decoupled_wd2.where(day)
-# sunset_wd = decoupled_wd2.where(sunsetting)
-
-# night_wd = night_wd.values.flatten()
-# sunrise_wd = sunrise_wd.values.flatten()
-# day_wd = day_wd.values.flatten()
-# sunset_wd = sunset_wd.values.flatten()
-
-# morewd_data = [night_wd,sunrise_wd,day_wd,sunset_wd]
-
-# plt.hist(morewd_data,bins=50,stacked=True)
-# plt.xlabel("Wind Direction (degrees)")
-# plt.ylabel("Number of occurences (n)")
-# plt.title("Wind direction throughout the day (unstable surf, stable hub)")
-# plt.legend(labels=["0100-0700 UTC","0700-1300 UTC","1300-1900 UTC","1900-0100 UTC"])
-# plt.show()
+H,dir_edges,speed_edges = np.histogram2d(coupled_wd,coupled_ws,bins=[dir_bins,speed_bins])
+freq = H / H.sum()
+fig = plt.figure(figsize=(6,6))
+ax = plt.subplot(111,polar=True)
+colors = plt.cm.viridis(np.linspace(0,1,len(speed_bins)-1))
+for i in range(len(speed_bins)-1):
+    values = freq[:, i]
+    bars = ax.bar(rose_theta, values, width=rose_width, bottom=bottom, color=colors[i], label=f"{speed_bins[i]}-{speed_bins[i+1]} m/s")
+    bottom += values
+ax.set_theta_zero_location("N")
+ax.set_theta_direction(-1)
+ax.set_title("Wind speed and direction (Coupled cases)")
+ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
+plt.show()
 
 # # plot surface Bulk Richardson number:
 # fig, ax = plt.subplots(figsize=(6,5))
