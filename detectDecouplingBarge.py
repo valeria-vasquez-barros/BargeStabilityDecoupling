@@ -166,8 +166,8 @@ thetasurf_i = theta.sel(height=hsurf_i)
 thetasurf_f = theta.sel(height=hsurf_f)
 deltaTheta_surf = thetasurf_f - thetasurf_i # K
 # 3) change in temperature
-tempsurf_i = tempK.sel(height=hsurf_i)
-tempsurf_f = tempK.sel(height=hsurf_f)
+tempsurf_i = temp.sel(height=hsurf_i)
+tempsurf_f = temp.sel(height=hsurf_f)
 avgTemp_surf = (tempsurf_i+tempsurf_f)/2 # K
 # 4) change in u,v over heights
 usurf_i = uGeo.sel(height=hsurf_i)
@@ -180,6 +180,7 @@ dV_surf = vsurf_f - vsurf_i
 num1_surf = g/avgTemp_surf
 num2_surf = deltaTheta_surf*dZ_surf
 sGeo_surf = (dU_surf**2+dV_surf**2)
+sGeo_surf = sGeo_surf.where(sGeo_surf > 0.05)
 num3_surf = num2_surf/sGeo_surf
 BulkRi_surf = num1_surf*num3_surf
 
@@ -193,8 +194,8 @@ thetahub_i = theta.sel(height=hhub_i)
 thetahub_f = theta.sel(height=hhub_f)
 deltaTheta_hub = thetahub_f - thetahub_i # K
 # 3) change in temperature
-temphub_i = tempK.sel(height=hhub_i)
-temphub_f = tempK.sel(height=hhub_f)
+temphub_i = temp.sel(height=hhub_i)
+temphub_f = temp.sel(height=hhub_f)
 avgTemp_hub = (temphub_i+temphub_f)/2 # K
 # 4) change in u,v over heights
 uhub_i = uGeo.sel(height=hhub_i)
@@ -207,6 +208,7 @@ dV_hub = vhub_f - vhub_i
 num1_hub = g/avgTemp_hub
 num2_hub = deltaTheta_hub*dZ_hub
 sGeo_hub = (dU_hub**2+dV_hub**2)
+sGeo_hub = sGeo_hub.where(sGeo_hub > 0.05)
 num3_hub = num2_hub/sGeo_hub
 BulkRi_hub = num1_hub*num3_hub
 
