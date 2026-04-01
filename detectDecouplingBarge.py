@@ -180,7 +180,6 @@ dV_surf = vsurf_f - vsurf_i
 num1_surf = g/avgTemp_surf
 num2_surf = deltaTheta_surf*dZ_surf
 sGeo_surf = (dU_surf**2+dV_surf**2)
-sGeo_surf = sGeo_surf.where(sGeo_surf > 0.01)
 num3_surf = num2_surf/sGeo_surf
 BulkRi_surf = num1_surf*num3_surf
 
@@ -208,7 +207,6 @@ dV_hub = vhub_f - vhub_i
 num1_hub = g/avgTemp_hub
 num2_hub = deltaTheta_hub*dZ_hub
 sGeo_hub = (dU_hub**2+dV_hub**2)
-sGeo_hub = sGeo_hub.where(sGeo_hub > 0.01)
 num3_hub = num2_hub/sGeo_hub
 BulkRi_hub = num1_hub*num3_hub
 

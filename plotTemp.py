@@ -29,6 +29,17 @@ data_1 = data.copy()
 data_1 = data_1.assign_coords(height = data_1["height"] * 1000)
 data_1["height"].attrs["units"] = "m"
 
+# plot vertical resolution for all heights
+all_heights = data_1.height
+plt.hlines(y=all_heights,xmin=0.5,xmax=1.5,colors='r')
+intervals = np.array([100,1000,2000,5000,10000,15000,17000])
+plt.xlim(0,2)
+plt.xticks([])
+plt.yticks(intervals)
+plt.ylabel('Height (m)')
+plt.title('ASSIST Spatial Resolution')
+plt.show()
+
 # only looking at heights 40-300 m
 theta = data_1["theta"].sel(height = slice(40,300))
 height = data_1["height"].sel(height = slice(40,300))
