@@ -77,26 +77,46 @@ def detect_staticdecoupling(dTheta_surf,dTheta_hub):
     return times1,times2
         
 stimes1,stimes2 = detect_staticdecoupling(dTheta_surf,dTheta_hub)
-print(f"statically stable near surface and statically unstable near hub: {stimes1}")
-print(f"statically unstable near surface and statically stable near hub: {stimes2}")
+# print(f"statically stable near surface and statically unstable near hub: {stimes1}")
+# print(f"statically unstable near surface and statically stable near hub: {stimes2}")
+
+def detect_staticdecoupling2(dTheta_surf,dTheta_hub):
+    
+    valid2 = (
+        dTheta_surf_mean.notnull() & # there are nulls because of off-station times and no data
+        dTheta_hub_mean.notnull()
+    )
+    
+    surf_stable = (dTheta_surf_mean>0)
+    surf_unstable = (dTheta_surf_mean<0)
+    hub_stable = (dTheta_hub_mean>0)
+    hub_unstable = (dTheta_hub_mean<0)
+    
+    logic1 = (surf_stable & hub_unstable) & valid2
+    logic2 = (surf_unstable & hub_stable) & valid2
+    
+    times1 = dTheta_surf_mean.time.where(logic1,drop=True)
+    times2 = dTheta_surf_mean.time.where(logic2,drop=True)
+    
+    return times1,times2
 
 # Static Quadrant Plot:
 dTheta_surf_mean = dTheta_surf.mean("height") # concerned with bulk behavior for quadrants
 dTheta_hub_mean = dTheta_hub.mean("height")
 
-stimes3,stimes4 = detect_staticdecoupling(dTheta_surf_mean, dTheta_hub_mean)
+stimes3,stimes4 = detect_staticdecoupling2(dTheta_surf_mean, dTheta_hub_mean)
 print(f"statically stable near surface and statically unstable near hub: {stimes3}")
-
+print(f"statically unstable near surface and statically stable near hub: {stimes4}")
 
 valid2 = (
     dTheta_surf_mean.notnull() & # there are nulls because of off-station times and no data
     dTheta_hub_mean.notnull()
 )
 
-# Q1 = ((dTheta_surf_mean > 0) & (dTheta_hub_mean > 0))
-# Q2 = ((dTheta_surf_mean > 0) & (dTheta_hub_mean < 0))
-# Q3 = ((dTheta_surf_mean < 0) & (dTheta_hub_mean < 0))
-# Q4 = ((dTheta_surf_mean < 0) & (dTheta_hub_mean > 0))
+Q1 = ((dTheta_surf_mean > 0) & (dTheta_hub_mean > 0))
+Q2 = ((dTheta_surf_mean > 0) & (dTheta_hub_mean < 0))
+Q3 = ((dTheta_surf_mean < 0) & (dTheta_hub_mean < 0))
+Q4 = ((dTheta_surf_mean < 0) & (dTheta_hub_mean > 0))
 
 # Q1percent = Q1.where(valid2).mean()*100
 # # print(f"Q1:{Q1percent.values:.2f}%")
@@ -124,11 +144,11 @@ valid2 = (
 # plt.legend()
 # plt.show()
 
-# static_decoupled = (Q2 | Q4).where(valid2) # exclude null values (off-station or no data)
-# staticOverall_percent = 100*static_decoupled.mean() # mean considers total (non-null)
-# monthly_num = (static_decoupled.groupby("time.month").sum())
-# monthly_percent = (static_decoupled.groupby("time.month").mean())
-# print(f"{staticOverall_percent.values:.2f}% of the summer (on station) is statically decoupled")
+static_decoupled = (Q2 | Q4).where(valid2) # exclude null values (off-station or no data)
+staticOverall_percent = 100*static_decoupled.mean() # mean considers total (non-null)
+monthly_num = (static_decoupled.groupby("time.month").sum())
+monthly_percent = (static_decoupled.groupby("time.month").mean())
+print(f"{staticOverall_percent.values:.2f}% of the summer (on station) is statically decoupled")
 
 # # frequency along time:
 # months = xr.DataArray(["Jun", "Jul", "Aug", "Sep"])
