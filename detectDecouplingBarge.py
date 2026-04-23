@@ -84,10 +84,14 @@ print(f"statically unstable near surface and statically stable near hub: {stimes
 dTheta_surf_mean = dTheta_surf.mean("height") # concerned with bulk behavior for quadrants
 dTheta_hub_mean = dTheta_hub.mean("height")
 
-# valid2 = (
-#     dTheta_surf_mean.notnull() & # there are nulls because of off-station times and no data
-#     dTheta_hub_mean.notnull()
-# )
+stimes3,stimes4 = detect_staticdecoupling(dTheta_surf_mean, dTheta_hub_mean)
+print(f"statically stable near surface and statically unstable near hub: {stimes3}")
+
+
+valid2 = (
+    dTheta_surf_mean.notnull() & # there are nulls because of off-station times and no data
+    dTheta_hub_mean.notnull()
+)
 
 # Q1 = ((dTheta_surf_mean > 0) & (dTheta_hub_mean > 0))
 # Q2 = ((dTheta_surf_mean > 0) & (dTheta_hub_mean < 0))
@@ -145,19 +149,19 @@ dTheta_hub_mean = dTheta_hub.mean("height")
 #         if duration >= 18:
 #             print(segment.time.values[0], "to", segment.time.values[-1])
 
-# try plot of dTheta across all heights for clarity
-plt.figure(figsize=(10, 5))
-dTheta.sel(height=slice(40,200)).plot(x="time", y="height", cmap="coolwarm")
-ax = plt.gca()
-ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))  # only show hours
-ax.axvline(sunrise,color="purple",linestyle="--",linewidth=1.5,label='Sunrise')
-ax.axvline(sunset,color="black",linestyle="--",linewidth=1.5,label='Sunset')
-# ax.legend(loc="upper right",label="dθ/dz")
-# plt.title("dθ/dz")
-plt.xlabel("UTC Time")
-plt.ylabel("Height (m)")
-plt.tight_layout()
-plt.show()
+# # try plot of dTheta across all heights for clarity
+# plt.figure(figsize=(10, 5))
+# dTheta.sel(height=slice(40,200)).plot(x="time", y="height", cmap="coolwarm")
+# ax = plt.gca()
+# ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))  # only show hours
+# ax.axvline(sunrise,color="purple",linestyle="--",linewidth=1.5,label='Sunrise')
+# ax.axvline(sunset,color="black",linestyle="--",linewidth=1.5,label='Sunset')
+# # ax.legend(loc="upper right",label="dθ/dz")
+# # plt.title("dθ/dz")
+# plt.xlabel("UTC Time")
+# plt.ylabel("Height (m)")
+# plt.tight_layout()
+# plt.show()
 
 # # plot dTheta at surface:
 # plt.figure(figsize=(10, 5))
@@ -291,8 +295,8 @@ def detect_dynamicdecoupling(BulkRi_surf,BulkRi_hub):
     return dtimes1,dtimes2
 
 dtimes1,dtimes2 = detect_dynamicdecoupling(BulkRi_surf,BulkRi_hub)
-print(f"dynamically stable near surface and dynamically unstable near hub: {dtimes1}")
-print(f"dynamically unstable near surface and dynamically stable near hub: {dtimes2}")
+# print(f"dynamically stable near surface and dynamically unstable near hub: {dtimes1}")
+# print(f"dynamically unstable near surface and dynamically stable near hub: {dtimes2}")
 
 # # Dynamic Quadrant Plot:
 # valid4 = (
@@ -368,51 +372,51 @@ print(f"dynamically unstable near surface and dynamically stable near hub: {dtim
 #         if duration >= 6:
 #             print(segment.time.values[0], "to", segment.time.values[-1])
 
-# plot surface Bulk Richardson number:
-fig, ax = plt.subplots(figsize=(6,5))
-BulkRi_surf.plot(ax=ax)
-ax.set_xlim(BulkRi_surf.time.min().values,BulkRi_surf.time.max().values)
-ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))
-ax.axhline(0, linestyle="--", label='Critical Ri')
-# ax.axvline(sunrise, linestyle="--", label='Sunrise')
-# ax.axvline(sunset, linestyle="--", label='Sunset')
-# ax.set_title("40-60m")
-ax.set_xlabel("UTC Time")
-ax.set_ylabel("Bulk Richardson number")
-ax.legend()
-plt.tight_layout()
-plt.show()
+# # plot surface Bulk Richardson number:
+# fig, ax = plt.subplots(figsize=(6,5))
+# BulkRi_surf.plot(ax=ax)
+# ax.set_xlim(BulkRi_surf.time.min().values,BulkRi_surf.time.max().values)
+# ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))
+# ax.axhline(0, linestyle="--", label='Critical Ri')
+# # ax.axvline(sunrise, linestyle="--", label='Sunrise')
+# # ax.axvline(sunset, linestyle="--", label='Sunset')
+# # ax.set_title("40-60m")
+# ax.set_xlabel("UTC Time")
+# ax.set_ylabel("Bulk Richardson number")
+# ax.legend()
+# plt.tight_layout()
+# plt.show()
 
-# plot hub height Bulk Richardson number:
-fig, ax = plt.subplots(figsize=(6,5))
-BulkRi_hub.plot(ax=ax)
-ax.set_xlim(BulkRi_hub.time.min().values,BulkRi_hub.time.max())
-ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))
-ax.axhline(0, linestyle="--", label='Critical Ri')
-# ax.axvline(sunrise, linestyle="--", label='Sunrise')
-# ax.axvline(sunset, linestyle="--", label='Sunset')
-# ax.set_title("120-160m")
-ax.set_xlabel("UTC Time")
-ax.set_ylabel("Bulk Richardson number")
-ax.legend()
-plt.tight_layout()
-plt.show()
+# # plot hub height Bulk Richardson number:
+# fig, ax = plt.subplots(figsize=(6,5))
+# BulkRi_hub.plot(ax=ax)
+# ax.set_xlim(BulkRi_hub.time.min().values,BulkRi_hub.time.max())
+# ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))
+# ax.axhline(0, linestyle="--", label='Critical Ri')
+# # ax.axvline(sunrise, linestyle="--", label='Sunrise')
+# # ax.axvline(sunset, linestyle="--", label='Sunset')
+# # ax.set_title("120-160m")
+# ax.set_xlabel("UTC Time")
+# ax.set_ylabel("Bulk Richardson number")
+# ax.legend()
+# plt.tight_layout()
+# plt.show()
 
 #%% Summary statistics of decoupled events
 
-# grab wind speed/direction and times when decoupling occurs
-decoupled_ws1 = wind_speed.sel(time=dtimes1).values.flatten() # stable surf, unstable hub
-decoupled_ws2 = wind_speed.sel(time=dtimes2).values.flatten() # unstable surf, stable hub
-decoupled_ws1 = decoupled_ws1[~np.isnan(decoupled_ws1)]
-decoupled_ws2 = decoupled_ws2[~np.isnan(decoupled_ws2)]
+# # grab wind speed/direction and times when decoupling occurs
+# decoupled_ws1 = wind_speed.sel(time=dtimes1).values.flatten() # stable surf, unstable hub
+# decoupled_ws2 = wind_speed.sel(time=dtimes2).values.flatten() # unstable surf, stable hub
+# decoupled_ws1 = decoupled_ws1[~np.isnan(decoupled_ws1)]
+# decoupled_ws2 = decoupled_ws2[~np.isnan(decoupled_ws2)]
 
-decoupled_wd1 = np.rad2deg(wind_direction.sel(time=dtimes1).values.flatten())
-decoupled_wd2 = np.rad2deg(wind_direction.sel(time=dtimes2).values.flatten())
-decoupled_wd1 = decoupled_wd1[~np.isnan(decoupled_wd1)]
-decoupled_wd2 = decoupled_wd2[~np.isnan(decoupled_wd2)]
+# decoupled_wd1 = np.rad2deg(wind_direction.sel(time=dtimes1).values.flatten())
+# decoupled_wd2 = np.rad2deg(wind_direction.sel(time=dtimes2).values.flatten())
+# decoupled_wd1 = decoupled_wd1[~np.isnan(decoupled_wd1)]
+# decoupled_wd2 = decoupled_wd2[~np.isnan(decoupled_wd2)]
 
-decoupled_times1 = dtimes1.dt.hour + dtimes1.dt.minute/60
-decoupled_times2 = dtimes2.dt.hour + dtimes2.dt.minute/60
+# decoupled_times1 = dtimes1.dt.hour + dtimes1.dt.minute/60
+# decoupled_times2 = dtimes2.dt.hour + dtimes2.dt.minute/60
 
 # # Wind speed (Q4) distribution histogram
 # plt.hist(decoupled_ws2,bins=80)
@@ -564,39 +568,39 @@ decoupled_times2 = dtimes2.dt.hour + dtimes2.dt.minute/60
 # ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
 # plt.show()
 
-# Look at decoupled wind roses by surface and hub height
-surf_ws2 = wind_speed.sel(height=slice(40,60),time=dtimes2).values.flatten()
-surf_ws2 = surf_ws2[~np.isnan(surf_ws2)]
-surf_wd2 = np.rad2deg(wind_direction.sel(height=slice(40,60),time=dtimes2).values.flatten())
-surf_wd2 = surf_wd2[~np.isnan(surf_wd2)]
+# # Look at decoupled wind roses by surface and hub height
+# surf_ws2 = wind_speed.sel(height=slice(40,60),time=dtimes2).values.flatten()
+# surf_ws2 = surf_ws2[~np.isnan(surf_ws2)]
+# surf_wd2 = np.rad2deg(wind_direction.sel(height=slice(40,60),time=dtimes2).values.flatten())
+# surf_wd2 = surf_wd2[~np.isnan(surf_wd2)]
 
-hub_ws2 = wind_speed.sel(height=slice(120,160),time=dtimes2).values.flatten()
-hub_ws2 = hub_ws2[~np.isnan(hub_ws2)]
-hub_wd2 = np.rad2deg(wind_direction.sel(height=slice(120,160),time=dtimes2).values.flatten())
-hub_wd2 = hub_wd2[~np.isnan(hub_wd2)]
+# hub_ws2 = wind_speed.sel(height=slice(120,160),time=dtimes2).values.flatten()
+# hub_ws2 = hub_ws2[~np.isnan(hub_ws2)]
+# hub_wd2 = np.rad2deg(wind_direction.sel(height=slice(120,160),time=dtimes2).values.flatten())
+# hub_wd2 = hub_wd2[~np.isnan(hub_wd2)]
 
-dir_bins = np.arange(0,361,30)
-counts, _ = np.histogram(decoupled_wd2,bins=dir_bins)
-freq = counts / counts.sum() * 100
-rose_theta = np.deg2rad(dir_bins[:-1])
-rose_width = np.deg2rad(30)
-speed_bins = [0,2,4,6,8,10,12,14,16]
+# dir_bins = np.arange(0,361,30)
+# counts, _ = np.histogram(decoupled_wd2,bins=dir_bins)
+# freq = counts / counts.sum() * 100
+# rose_theta = np.deg2rad(dir_bins[:-1])
+# rose_width = np.deg2rad(30)
+# speed_bins = [0,2,4,6,8,10,12,14,16]
 
-H,dir_edges,speed_edges = np.histogram2d(surf_wd2,surf_ws2,bins=[dir_bins,speed_bins])
-freq = H / H.sum()
-bottom = np.zeros(len(rose_theta))
-fig = plt.figure(figsize=(6,6))
-ax = plt.subplot(111,polar=True)
-colors = plt.cm.viridis(np.linspace(0,1,len(speed_bins)-1))
-for i in range(len(speed_bins)-1):
-    values = freq[:, i]
-    bars = ax.bar(rose_theta, values, width=rose_width, bottom=bottom, color=colors[i], label=f"{speed_bins[i]}-{speed_bins[i+1]} m/s")
-    bottom += values
-ax.set_theta_zero_location("N")
-ax.set_theta_direction(-1)
-# ax.set_title("Surface-level Wind Rose (Surface Turbulent - Hub Stable)")
-ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
-plt.show()
+# H,dir_edges,speed_edges = np.histogram2d(surf_wd2,surf_ws2,bins=[dir_bins,speed_bins])
+# freq = H / H.sum()
+# bottom = np.zeros(len(rose_theta))
+# fig = plt.figure(figsize=(6,6))
+# ax = plt.subplot(111,polar=True)
+# colors = plt.cm.viridis(np.linspace(0,1,len(speed_bins)-1))
+# for i in range(len(speed_bins)-1):
+#     values = freq[:, i]
+#     bars = ax.bar(rose_theta, values, width=rose_width, bottom=bottom, color=colors[i], label=f"{speed_bins[i]}-{speed_bins[i+1]} m/s")
+#     bottom += values
+# ax.set_theta_zero_location("N")
+# ax.set_theta_direction(-1)
+# # ax.set_title("Surface-level Wind Rose (Surface Turbulent - Hub Stable)")
+# ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
+# plt.show()
 
 #%% Summary statistics for coupled events
 
