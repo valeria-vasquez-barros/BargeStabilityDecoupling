@@ -48,97 +48,83 @@ theta = dataAssist["theta"]
 temp = dataAssist["temperature"]
 # .sel(time=slice("2024-06-29 00:00:00","2024-06-29 23:59:59"))
 tempK = temp + 273.15 # convert to K
-dTheta = theta.differentiate("height")
 
-# Select dTheta "near-surface" and "hub-height"
-dTheta_surf = dTheta.sel(height=slice(40,60))
+# dTheta gradient
+dTheta = theta.differentiate("height")
+dTheta_surf = dTheta.sel(height=slice(40,60)) 
 dTheta_hub = dTheta.sel(height=slice(120,160))
 dTheta_times = dTheta.time
 
+# Calculate bulk deltaTheta/deltaz "near-surface" and "hub-height"
 thetasurf_i = theta.sel(height=40)
 thetasurf_f = theta.sel(height=60)
-deltaTheta_surf = thetasurf_f - thetasurf_i # K
+deltaTheta_surf = (thetasurf_f - thetasurf_i)/20 # K
 
 thetahub_i = theta.sel(height=120)
 thetahub_f = theta.sel(height=160)
-deltaTheta_hub = thetahub_f - thetahub_i # K
+deltaTheta_hub = (thetahub_f - thetahub_i)/40 # K
 
 # Static decoupling occurrences:
-def detect_staticdecoupling(dTheta_surf,dTheta_hub):
+def detect_staticdecoupling(deltaTheta_surf,deltaTheta_hub):
     
-    valid3 = (
-        dTheta_surf.notnull().all(dim="height") & # remove off-station and no data
-        dTheta_hub.notnull().all(dim="height")
+    valid2 = (
+        deltaTheta_surf.notnull() &
+        deltaTheta_hub.notnull()
         )
     
-    surf_stable = (dTheta_surf>0).all(dim="height")
-    surf_unstable = (dTheta_surf<0).all(dim="height")
-    hub_stable = (dTheta_hub>0).all(dim="height")
-    hub_unstable = (dTheta_hub<0).all(dim="height")
+    surf_stable = (deltaTheta_surf>0)
+    surf_unstable = (deltaTheta_surf<0)
+    hub_stable = (deltaTheta_hub>0)
+    hub_unstable = (deltaTheta_hub<0)
     
-    logic1 = (surf_stable & hub_unstable) & valid3
-    logic2 = (surf_unstable & hub_stable) & valid3
+    logic1 = (surf_stable & hub_unstable) & valid2
+    logic2 = (surf_unstable & hub_stable) & valid2
     
-    times1 = dTheta_surf.time.where(logic1,drop=True)
-    times2 = dTheta_surf.time.where(logic2,drop=True)
-    times3 = dTheta_surf.time.where(~(logic1|logic2),drop=True)
+    stimes1 = deltaTheta_surf.time.where(logic1,drop=True)
+    stimes2 = deltaTheta_hub.time.where(logic2,drop=True)
     
-    return times1,times2,times3
+    return stimes1,stimes2
         
-stimes1,stimes2,stimes3 = detect_staticdecoupling(dTheta_surf,dTheta_hub)
-print(f"statically stable near surface and statically unstable near hub: {stimes1}")
-print(f"statically unstable near surface and statically stable near hub: {stimes2}")
-# print(f"remaining times: {stimes3}")
+stimes1,stimes2 = detect_staticdecoupling(deltaTheta_surf,deltaTheta_hub)
+# print(f"statically stable near surface and statically unstable near hub: {stimes1}")
+# print(f"statically unstable near surface and statically stable near hub: {stimes2}")
 
 # Static Quadrant Plot:
-dTheta_surf_mean = dTheta_surf.mean("height") # concerned with bulk behavior for quadrants
-dTheta_hub_mean = dTheta_hub.mean("height")
-
-# valid2 = (
-#     dTheta_surf_mean.notnull() & # there are nulls because of off-station times and no data
-#     dTheta_hub_mean.notnull()
-# )
-
 valid2 = (
-    dTheta_surf.notnull().all(dim="height") & # remove off-station and no data
-    dTheta_hub.notnull().all(dim="height")
+    deltaTheta_surf.notnull() & # remove off-station and no data
+    deltaTheta_hub.notnull()
 )
 
-# Q1 = ((dTheta_surf_mean > 0) & (dTheta_hub_mean > 0))
-# Q2 = ((dTheta_surf_mean > 0) & (dTheta_hub_mean < 0))
-# Q3 = ((dTheta_surf_mean < 0) & (dTheta_hub_mean < 0))
-# Q4 = ((dTheta_surf_mean < 0) & (dTheta_hub_mean > 0))
-
-Q1 = ((dTheta_surf > 0).all(dim="height") & (dTheta_hub > 0).all(dim="height"))
-Q2 = ((dTheta_surf > 0).all(dim="height") & (dTheta_hub < 0).all(dim="height"))
-Q3 = ((dTheta_surf < 0).all(dim="height") & (dTheta_hub < 0).all(dim="height"))
-Q4 = ((dTheta_surf < 0).all(dim="height") & (dTheta_hub > 0).all(dim="height"))
+Q1 = ((deltaTheta_surf > 0) & (deltaTheta_hub > 0))
+Q2 = ((deltaTheta_surf > 0) & (deltaTheta_hub < 0))
+Q3 = ((deltaTheta_surf < 0) & (deltaTheta_hub < 0))
+Q4 = ((deltaTheta_surf < 0) & (deltaTheta_hub > 0))
 
 Q1percent = Q1.where(valid2).mean()*100
-print(f"Q1:{Q1percent.values:.2f}%")
+# print(f"Q1:{Q1percent.values:.2f}%")
 Q2percent = Q2.where(valid2).mean()*100
-print(f"Q2:{Q2percent.values:.2f}%")
+# print(f"Q2:{Q2percent.values:.2f}%")
 Q3percent = Q3.where(valid2).mean()*100
-print(f"Q3:{Q3percent.values:.2f}%")
+# print(f"Q3:{Q3percent.values:.2f}%")
 Q4percent = Q4.where(valid2).mean()*100
-print(f"Q4:{Q4percent.values:.2f}%")
+# print(f"Q4:{Q4percent.values:.2f}%")
 
-plt.figure(figsize=(6,6))
-plt.scatter(dTheta_surf_mean.where(Q1&valid2),dTheta_hub_mean.where(Q1&valid2),color='blue',alpha=0.4,label="Coupled Stability")
-plt.scatter(dTheta_surf_mean.where(Q2&valid2),dTheta_hub_mean.where(Q2&valid2),color='gray',alpha=0.4,label="Surface Stable - Hub Unstable")
-plt.scatter(dTheta_surf_mean.where(Q3&valid2),dTheta_hub_mean.where(Q3&valid2),color='red',alpha=0.4,label="Coupled Instability")
-plt.scatter(dTheta_surf_mean.where(Q4&valid2),dTheta_hub_mean.where(Q4&valid2),color='purple',alpha=0.4,label="Surface Unstable - Hub Stable")
-plt.axhline(0,color='k')
-plt.axvline(0,color='k')
-plt.text(0.8,0.9,f"{Q1percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
-plt.text(0.8,0.3,f"{Q2percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
-plt.text(0.1,0.1,f"{Q3percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
-plt.text(0.1,0.9,f"{Q4percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
-plt.xlabel("dθ/dz (40-60m)")
-plt.ylabel("dθ/dz (120-160m)")
-# plt.title("Static Stability Quadrant Analysis")
-plt.legend()
-plt.show()
+# plt.figure(figsize=(6,6))
+# plt.scatter(deltaTheta_surf.where(Q1&valid2),deltaTheta_hub.where(Q1&valid2),color='blue',alpha=0.4,label="Coupled Stability")
+# plt.scatter(deltaTheta_surf.where(Q2&valid2),deltaTheta_hub.where(Q2&valid2),color='gray',alpha=0.4,label="Surface Stable - Hub Unstable")
+# plt.scatter(deltaTheta_surf.where(Q3&valid2),deltaTheta_hub.where(Q3&valid2),color='red',alpha=0.4,label="Coupled Instability")
+# plt.scatter(deltaTheta_surf.where(Q4&valid2),deltaTheta_hub.where(Q4&valid2),color='purple',alpha=0.4,label="Surface Unstable - Hub Stable")
+# plt.axhline(0,color='k')
+# plt.axvline(0,color='k')
+# plt.text(0.8,0.9,f"{Q1percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
+# plt.text(0.8,0.3,f"{Q2percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
+# plt.text(0.1,0.1,f"{Q3percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
+# plt.text(0.1,0.9,f"{Q4percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
+# plt.xlabel("dθ/dz (40-60m)")
+# plt.ylabel("dθ/dz (120-160m)")
+# # plt.title("Static Stability Quadrant Analysis")
+# plt.legend()
+# plt.show()
 
 static_decoupled = (Q2 | Q4).where(valid2) # exclude null values (off-station or no data)
 staticOverall_percent = 100*static_decoupled.mean() # mean considers total (non-null)
@@ -152,7 +138,7 @@ print(f"{staticOverall_percent.values:.2f}% of the summer (on station) is static
 # plt.bar(months,monthly_num.sel(month=slice(6,9)).values,width=0.8)
 # plt.xlabel("UTC Time")
 # plt.ylabel("Number of Occurrences (n)")
-# plt.title("Static Stability Decoupling (Summer 2024)")
+# # plt.title("Static Stability Decoupling (Summer 2024)")
 # plt.show()
 
 # # identify long durations (1+ hours):
@@ -162,7 +148,7 @@ print(f"{staticOverall_percent.values:.2f}% of the summer (on station) is static
 #     segment = decouple_flag.where(groups==num,drop=True)
 #     if segment.mean() == 1:
 #         duration = len(segment)
-#         if duration >= 18:
+#         if duration >= 6:
 #             print(segment.time.values[0], "to", segment.time.values[-1])
 
 # # try plot of dTheta across all heights for clarity
