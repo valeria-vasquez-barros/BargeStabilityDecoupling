@@ -55,94 +55,90 @@ dTheta_surf = dTheta.sel(height=slice(40,60))
 dTheta_hub = dTheta.sel(height=slice(120,160))
 dTheta_times = dTheta.time
 
+thetasurf_i = theta.sel(height=40)
+thetasurf_f = theta.sel(height=60)
+deltaTheta_surf = thetasurf_f - thetasurf_i # K
+
+thetahub_i = theta.sel(height=120)
+thetahub_f = theta.sel(height=160)
+deltaTheta_hub = thetahub_f - thetahub_i # K
+
 # Static decoupling occurrences:
 def detect_staticdecoupling(dTheta_surf,dTheta_hub):
     
     valid3 = (
-        dTheta_surf.notnull().any(dim="height") & # remove off-station and no data
-        dTheta_hub.notnull().any(dim="height")
+        dTheta_surf.notnull().all(dim="height") & # remove off-station and no data
+        dTheta_hub.notnull().all(dim="height")
         )
     
-    surf_stable = (dTheta_surf>0).any(dim="height")
-    surf_unstable = (dTheta_surf<0).any(dim="height")
-    hub_stable = (dTheta_hub>0).any(dim="height")
-    hub_unstable = (dTheta_hub<0).any(dim="height")
+    surf_stable = (dTheta_surf>0).all(dim="height")
+    surf_unstable = (dTheta_surf<0).all(dim="height")
+    hub_stable = (dTheta_hub>0).all(dim="height")
+    hub_unstable = (dTheta_hub<0).all(dim="height")
     
     logic1 = (surf_stable & hub_unstable) & valid3
     logic2 = (surf_unstable & hub_stable) & valid3
     
     times1 = dTheta_surf.time.where(logic1,drop=True)
     times2 = dTheta_surf.time.where(logic2,drop=True)
+    times3 = dTheta_surf.time.where(~(logic1|logic2),drop=True)
     
-    return times1,times2
+    return times1,times2,times3
         
-stimes1,stimes2 = detect_staticdecoupling(dTheta_surf,dTheta_hub)
-# print(f"statically stable near surface and statically unstable near hub: {stimes1}")
-# print(f"statically unstable near surface and statically stable near hub: {stimes2}")
-
-def detect_staticdecoupling2(dTheta_surf,dTheta_hub):
-    
-    valid2 = (
-        dTheta_surf_mean.notnull() & # there are nulls because of off-station times and no data
-        dTheta_hub_mean.notnull()
-    )
-    
-    surf_stable = (dTheta_surf_mean>0)
-    surf_unstable = (dTheta_surf_mean<0)
-    hub_stable = (dTheta_hub_mean>0)
-    hub_unstable = (dTheta_hub_mean<0)
-    
-    logic1 = (surf_stable & hub_unstable) & valid2
-    logic2 = (surf_unstable & hub_stable) & valid2
-    
-    times1 = dTheta_surf_mean.time.where(logic1,drop=True)
-    times2 = dTheta_surf_mean.time.where(logic2,drop=True)
-    
-    return times1,times2
+stimes1,stimes2,stimes3 = detect_staticdecoupling(dTheta_surf,dTheta_hub)
+print(f"statically stable near surface and statically unstable near hub: {stimes1}")
+print(f"statically unstable near surface and statically stable near hub: {stimes2}")
+# print(f"remaining times: {stimes3}")
 
 # Static Quadrant Plot:
 dTheta_surf_mean = dTheta_surf.mean("height") # concerned with bulk behavior for quadrants
 dTheta_hub_mean = dTheta_hub.mean("height")
 
-stimes3,stimes4 = detect_staticdecoupling2(dTheta_surf_mean, dTheta_hub_mean)
-print(f"statically stable near surface and statically unstable near hub: {stimes3}")
-print(f"statically unstable near surface and statically stable near hub: {stimes4}")
+# valid2 = (
+#     dTheta_surf_mean.notnull() & # there are nulls because of off-station times and no data
+#     dTheta_hub_mean.notnull()
+# )
 
 valid2 = (
-    dTheta_surf_mean.notnull() & # there are nulls because of off-station times and no data
-    dTheta_hub_mean.notnull()
+    dTheta_surf.notnull().all(dim="height") & # remove off-station and no data
+    dTheta_hub.notnull().all(dim="height")
 )
 
-Q1 = ((dTheta_surf_mean > 0) & (dTheta_hub_mean > 0))
-Q2 = ((dTheta_surf_mean > 0) & (dTheta_hub_mean < 0))
-Q3 = ((dTheta_surf_mean < 0) & (dTheta_hub_mean < 0))
-Q4 = ((dTheta_surf_mean < 0) & (dTheta_hub_mean > 0))
+# Q1 = ((dTheta_surf_mean > 0) & (dTheta_hub_mean > 0))
+# Q2 = ((dTheta_surf_mean > 0) & (dTheta_hub_mean < 0))
+# Q3 = ((dTheta_surf_mean < 0) & (dTheta_hub_mean < 0))
+# Q4 = ((dTheta_surf_mean < 0) & (dTheta_hub_mean > 0))
 
-# Q1percent = Q1.where(valid2).mean()*100
-# # print(f"Q1:{Q1percent.values:.2f}%")
-# Q2percent = Q2.where(valid2).mean()*100
-# # print(f"Q2:{Q2percent.values:.2f}%")
-# Q3percent = Q3.where(valid2).mean()*100
-# # print(f"Q3:{Q3percent.values:.2f}%")
-# Q4percent = Q4.where(valid2).mean()*100
-# # print(f"Q4:{Q4percent.values:.2f}%")
+Q1 = ((dTheta_surf > 0).all(dim="height") & (dTheta_hub > 0).all(dim="height"))
+Q2 = ((dTheta_surf > 0).all(dim="height") & (dTheta_hub < 0).all(dim="height"))
+Q3 = ((dTheta_surf < 0).all(dim="height") & (dTheta_hub < 0).all(dim="height"))
+Q4 = ((dTheta_surf < 0).all(dim="height") & (dTheta_hub > 0).all(dim="height"))
 
-# plt.figure(figsize=(6,6))
-# plt.scatter(dTheta_surf_mean.where(Q1&valid2),dTheta_hub_mean.where(Q1&valid2),color='blue',alpha=0.4,label="Coupled Stability")
-# plt.scatter(dTheta_surf_mean.where(Q2&valid2),dTheta_hub_mean.where(Q2&valid2),color='gray',alpha=0.4,label="Surface Stable - Hub Unstable")
-# plt.scatter(dTheta_surf_mean.where(Q3&valid2),dTheta_hub_mean.where(Q3&valid2),color='red',alpha=0.4,label="Coupled Instability")
-# plt.scatter(dTheta_surf_mean.where(Q4&valid2),dTheta_hub_mean.where(Q4&valid2),color='purple',alpha=0.4,label="Surface Unstable - Hub Stable")
-# plt.axhline(0,color='k')
-# plt.axvline(0,color='k')
-# plt.text(0.8,0.9,f"{Q1percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
-# plt.text(0.8,0.3,f"{Q2percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
-# plt.text(0.1,0.1,f"{Q3percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
-# plt.text(0.1,0.9,f"{Q4percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
-# plt.xlabel("dθ/dz (40-60m)")
-# plt.ylabel("dθ/dz (120-160m)")
-# # plt.title("Static Stability Quadrant Analysis")
-# plt.legend()
-# plt.show()
+Q1percent = Q1.where(valid2).mean()*100
+print(f"Q1:{Q1percent.values:.2f}%")
+Q2percent = Q2.where(valid2).mean()*100
+print(f"Q2:{Q2percent.values:.2f}%")
+Q3percent = Q3.where(valid2).mean()*100
+print(f"Q3:{Q3percent.values:.2f}%")
+Q4percent = Q4.where(valid2).mean()*100
+print(f"Q4:{Q4percent.values:.2f}%")
+
+plt.figure(figsize=(6,6))
+plt.scatter(dTheta_surf_mean.where(Q1&valid2),dTheta_hub_mean.where(Q1&valid2),color='blue',alpha=0.4,label="Coupled Stability")
+plt.scatter(dTheta_surf_mean.where(Q2&valid2),dTheta_hub_mean.where(Q2&valid2),color='gray',alpha=0.4,label="Surface Stable - Hub Unstable")
+plt.scatter(dTheta_surf_mean.where(Q3&valid2),dTheta_hub_mean.where(Q3&valid2),color='red',alpha=0.4,label="Coupled Instability")
+plt.scatter(dTheta_surf_mean.where(Q4&valid2),dTheta_hub_mean.where(Q4&valid2),color='purple',alpha=0.4,label="Surface Unstable - Hub Stable")
+plt.axhline(0,color='k')
+plt.axvline(0,color='k')
+plt.text(0.8,0.9,f"{Q1percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
+plt.text(0.8,0.3,f"{Q2percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
+plt.text(0.1,0.1,f"{Q3percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
+plt.text(0.1,0.9,f"{Q4percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
+plt.xlabel("dθ/dz (40-60m)")
+plt.ylabel("dθ/dz (120-160m)")
+# plt.title("Static Stability Quadrant Analysis")
+plt.legend()
+plt.show()
 
 static_decoupled = (Q2 | Q4).where(valid2) # exclude null values (off-station or no data)
 staticOverall_percent = 100*static_decoupled.mean() # mean considers total (non-null)
@@ -451,7 +447,7 @@ dtimes1,dtimes2 = detect_dynamicdecoupling(BulkRi_surf,BulkRi_hub)
 # freq = counts / counts.sum() * 100
 # rose_theta = np.deg2rad(dir_bins[:-1])
 # rose_width = np.deg2rad(30)
-# speed_bins = [0,2,4,6,8,10,12,14,16]
+# speed_bins = [0,2,4,6,8,10,12,14,16,18,20,22,24]
 
 # H,dir_edges,speed_edges = np.histogram2d(decoupled_wd2,decoupled_ws2,bins=[dir_bins,speed_bins])
 # freq = H / H.sum()
@@ -756,34 +752,34 @@ dtimes1,dtimes2 = detect_dynamicdecoupling(BulkRi_surf,BulkRi_hub)
 
 #%% Summary statistics for whole summer
 
-# # Overall wind rose
-# all_ws = wind_speed.values.flatten()
-# all_ws = all_ws[~np.isnan(all_ws)]
-# all_wd = np.rad2deg(wind_direction.values.flatten())
-# all_wd = all_wd[~np.isnan(all_wd)]
+# Overall wind rose
+all_ws = wind_speed.values.flatten()
+all_ws = all_ws[~np.isnan(all_ws)]
+all_wd = np.rad2deg(wind_direction.values.flatten())
+all_wd = all_wd[~np.isnan(all_wd)]
 
-# dir_bins = np.arange(0,361,30)
-# counts, _ = np.histogram(all_wd,bins=dir_bins)
-# freq = counts / counts.sum() * 100
-# rose_theta = np.deg2rad(dir_bins[:-1])
-# rose_width = np.deg2rad(30)
-# speed_bins = [0,2,4,6,8,10,12,14,16,18]
+dir_bins = np.arange(0,361,30)
+counts, _ = np.histogram(all_wd,bins=dir_bins)
+freq = counts / counts.sum() * 100
+rose_theta = np.deg2rad(dir_bins[:-1])
+rose_width = np.deg2rad(30)
+speed_bins = [0,2,4,6,8,10,12,14,16,18,20,22,24]
 
-# H,dir_edges,speed_edges = np.histogram2d(all_wd,all_ws,bins=[dir_bins,speed_bins])
-# freq = H / H.sum()
-# bottom = np.zeros(len(rose_theta))
-# fig = plt.figure(figsize=(6,6))
-# ax = plt.subplot(111,polar=True)
-# colors = plt.cm.viridis(np.linspace(0,1,len(speed_bins)-1))
-# for i in range(len(speed_bins)-1):
-#     values = freq[:, i]
-#     bars = ax.bar(rose_theta, values, width=rose_width, bottom=bottom, color=colors[i], label=f"{speed_bins[i]}-{speed_bins[i+1]} m/s")
-#     bottom += values
-# ax.set_theta_zero_location("N")
-# ax.set_theta_direction(-1)
-# # ax.set_title("Wind Rose (Summer 2024)")
-# ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
-# plt.show()
+H,dir_edges,speed_edges = np.histogram2d(all_wd,all_ws,bins=[dir_bins,speed_bins])
+freq = H / H.sum()
+bottom = np.zeros(len(rose_theta))
+fig = plt.figure(figsize=(6,6))
+ax = plt.subplot(111,polar=True)
+colors = plt.cm.viridis(np.linspace(0,1,len(speed_bins)-1))
+for i in range(len(speed_bins)-1):
+    values = freq[:, i]
+    bars = ax.bar(rose_theta, values, width=rose_width, bottom=bottom, color=colors[i], label=f"{speed_bins[i]}-{speed_bins[i+1]} m/s")
+    bottom += values
+ax.set_theta_zero_location("N")
+ax.set_theta_direction(-1)
+# ax.set_title("Wind Rose (Summer 2024)")
+ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
+plt.show()
 
 # # Overall wind speed distribution
 # plt.hist(all_ws,bins=50)
