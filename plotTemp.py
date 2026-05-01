@@ -44,6 +44,17 @@ plt.show()
 theta = data_1["theta"].sel(height = slice(40,300))
 height = data_1["height"].sel(height = slice(40,300))
 
+# visualize interpolation
+plt.figure(figsize=(10,6))
+theta_ex = theta.sel(time="2024-07-20 12:00:00",method="nearest")
+theta_ex = theta_ex.transpose()
+interp_theta = theta_ex.interp(height = np.linspace(40,300,14),kwargs={"fill_value":"extrapolate"})
+interp_theta = interp_theta.transpose()
+interp_theta.plot(marker='o')
+theta_ex.plot(marker='s')
+plt.title(' ')
+plt.legend(['Interpolated ASSIST', 'Original ASSIST'])
+
 # plotting theta along height and time
 plt.figure(figsize=(10, 5))
 theta.plot(x="time", y="height", cmap="plasma")
