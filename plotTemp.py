@@ -52,8 +52,10 @@ interp_theta = theta_ex.interp(height = np.linspace(40,300,14),kwargs={"fill_val
 interp_theta = interp_theta.transpose()
 interp_theta.plot(marker='o')
 theta_ex.plot(marker='s')
+plt.ylabel('Potential Temperature, θ (K)',fontsize=15)
+plt.xlabel('Height (m)',fontsize=15)
 plt.title(' ')
-plt.legend(['Interpolated ASSIST', 'Original ASSIST'])
+plt.legend(['Interpolated ASSIST', 'Original ASSIST'],fontsize=15)
 
 # plotting theta along height and time
 plt.figure(figsize=(10, 5))
