@@ -32,11 +32,14 @@ def preprocess(file_data):
     file_data=file_data.assign_coords(height=file_data.height*1000)
     file_data["height"].attrs["units"] = "m"
     
-    # pre-select the desired height range
-    file_data=file_data.sel(height=slice(40,300))
-    file_data=file_data.interp(height = heights,kwargs={"fill_value":"extrapolate"})
+    # select outside the desired height range for interpolation
+    file_data=file_data.sel(height=slice(30,350))
+    file_data=file_data.interp(height = heights)
     
-    return file_data[["theta","temperature","time"]]
+    # select the desired height range for analysis
+    file_data=file_data.sel(height=slice(40,300))
+    
+    return file_data[["theta","rh","temperature","time"]]
 
 data_comb = xr.open_mfdataset(
     files, 
@@ -50,6 +53,6 @@ data_comb = data_comb.sortby("time")
 data_comb = data_comb.reindex(time=timesteps)
 
 new_folder = r"C:\Users\valer\Documents\WFIP3"
-new_filename = "barg.assist.tropoe.z01.combined.nc"
+new_filename = "barg.assist.tropoe.z01.combined.revised.nc"
 data_comb.to_netcdf(os.path.join(new_folder,new_filename))
 print("file saved")
