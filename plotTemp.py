@@ -12,11 +12,19 @@ import numpy as np
 import pandas as pd
 from astral import LocationInfo
 from astral.sun import sun
+from metpy.calc import mixing_ratio_from_relative_humidity
+from metpy.units import units
 plt.rcParams['figure.dpi'] = 300
 
 # file has temperature data for barge (July 21 - 28), heights 0 - 17 km
 filepath = r"C:\Users\valer\Documents\WFIP3\barg.assist.tropoe.z01.c1\barg.assist.tropoe.z01.c1.20240720.000005.nc"
 data = xr.open_dataset(filepath,decode_times = "true")
+filepath2 = r"C:\Users\valer\Documents\WFIP3\barg.assist.tropoe.z01.combined.revised2.nc"
+data2 = xr.open_dataset(filepath2,decode_times = "true")
+
+P = data2["pressure"].sel(time="2024-07-20 12:00:00") * units.hPa
+rh = data2["rh"].sel(time="2024-07-20 12:00:00")
+temp = data2["temperature"].sel(time="2024-07-20 12:00:00") * units.degC
 
 # collect sunrise/sunset info, useful in plots later
 location = LocationInfo(latitude=data.VIP_station_lat, longitude=data.VIP_station_lon, timezone="UTC")
@@ -40,26 +48,6 @@ plt.yticks(intervals)
 plt.ylabel('Height (m)')
 plt.title('ASSIST Spatial Resolution')
 plt.show()
-
-# only looking at heights 40-300 m
-theta = data_1["theta"].sel(height = slice(40,300))
-height = data_1["height"].sel(height = slice(40,300))
-
-# visualize interpolation/extrapolation
-plt.figure(figsize=(10,6))
-theta_ex = theta.sel(time="2024-07-20 12:00:00",method="nearest")
-theta_ex = theta_ex.transpose()
-interp_theta = theta_ex.interp(height = np.linspace(40,300,14),kwargs={"fill_value":"extrapolate"})
-interp_theta = interp_theta.transpose()
-interp_theta.plot(y="height",marker='o')
-theta_ex.plot(y="height",marker='s')
-plt.xlabel('Potential Temperature, θ (K)',fontsize=12)
-plt.ylabel('Height (m)',fontsize=12)
-plt.xlim(293.8,294.75)
-plt.xticks(fontsize=12)
-plt.yticks(fontsize=12)
-plt.title(' ')
-plt.legend(['Interpolated ASSIST', 'Original ASSIST'],fontsize=12)
 
 # visualize Nicola's suggestion (interpolate from larger range)
 theta = data_1["theta"].sel(height = slice(30,350))

@@ -18,6 +18,7 @@ plt.rcParams['axes.labelsize'] = 12
 plt.rcParams['xtick.labelsize'] = 12
 plt.rcParams['ytick.labelsize'] = 12
 plt.rcParams['legend.fontsize'] = 12
+
 #%% Data initialization
 # Open the data files
 filepathAssist = r"C:\Users\valer\Documents\WFIP3\barg.assist.tropoe.z01.combined.nc"
