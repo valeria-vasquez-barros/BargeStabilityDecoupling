@@ -13,6 +13,9 @@ from astral.sun import sun
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import seaborn as sb
+from metpy.calc import mixing_ratio_from_relative_humidity
+from metpy.calc import virtual_potential_temperature
+from metpy.units import units
 plt.rcParams['figure.dpi'] = 300
 plt.rcParams['axes.labelsize'] = 12
 plt.rcParams['xtick.labelsize'] = 12
@@ -21,7 +24,8 @@ plt.rcParams['legend.fontsize'] = 12
 
 #%% Data initialization
 # Open the data files
-filepathAssist = r"C:\Users\valer\Documents\WFIP3\barg.assist.tropoe.z01.combined.nc"
+# filepathAssist = r"C:\Users\valer\Documents\WFIP3\barg.assist.tropoe.z01.combined.nc"
+filepathAssist = r"C:\Users\valer\Documents\WFIP3\barg.assist.tropoe.z01.combined.revised2.nc"
 filepathLidar = r"C:\Users\valer\Documents\WFIP3\lidar.test\barg.lidar.z02.combined.nc"
 dataAssist = xr.open_dataset(filepathAssist,decode_times = "true")
 dataLidar = xr.open_dataset(filepathLidar,decode_times="true")
@@ -64,29 +68,35 @@ ETtimes = [(t - 4) % 24 for t in UTCtimes]
 
 #%% ASSIST variables, static stability analysis
 
-# Grab theta, temp variables from combined assist file
-theta = dataAssist["theta"]#.sel(time=slice("2024-07-27 00:00:00","2024-07-27 23:59:59"))
-temp = dataAssist["temperature"]#.sel(time=slice("2024-07-27 00:00:00","2024-07-27 23:59:59"))
+# Grab theta, temp, pressure, relative humidity from combined assist file
+theta = dataAssist["theta"].sel(time=slice("2024-06-17 00:00:00","2024-06-17 23:59:59"))
+temp = dataAssist["temperature"].sel(time=slice("2024-06-17 00:00:00","2024-06-17 23:59:59"))
+P = dataAssist["pressure"].sel(time=slice("2024-06-17 00:00:00","2024-06-17 23:59:59")) * units.hPa
+rh = dataAssist["rh"].sel(time=slice("2024-06-17 00:00:00","2024-06-17 23:59:59"))
 tempK = temp + 273.15 # convert to K
+
+# Compute virtual potential temperature
+mixingRatios = mixing_ratio_from_relative_humidity(P,temp*units.degC,rh)
+theta_v = virtual_potential_temperature(P,temp*units.degC,mixingRatios)
 
 # # Visualize null values after masking on-station days
 # plt.figure(figsize=(10,6))
 # theta.isnull().plot(x="time",y="height",cmap="coolwarm")
 
 # dTheta gradient
-dTheta = theta.differentiate("height")
-dTheta = dTheta.rename("dθ/dz")
+dTheta = theta_v.differentiate("height")
+dTheta = dTheta.rename(r"$d\theta_v/dz$")
 dTheta_surf = dTheta.sel(height=slice(40,60)) 
 dTheta_hub = dTheta.sel(height=slice(120,160))
 dTheta_times = dTheta.time
 
 # Calculate bulk deltaTheta/deltaz "near-surface" and "hub-height"
-thetasurf_i = theta.sel(height=40)
-thetasurf_f = theta.sel(height=60)
+thetasurf_i = theta_v.sel(height=40)
+thetasurf_f = theta_v.sel(height=60)
 deltaTheta_surf = (thetasurf_f - thetasurf_i)/20 # K
 
-thetahub_i = theta.sel(height=120)
-thetahub_f = theta.sel(height=160)
+thetahub_i = theta_v.sel(height=120)
+thetahub_f = theta_v.sel(height=160)
 deltaTheta_hub = (thetahub_f - thetahub_i)/40 # K
 
 # Static decoupling occurrences:
@@ -126,13 +136,13 @@ Q3 = ((deltaTheta_surf < 0) & (deltaTheta_hub < 0))
 Q4 = ((deltaTheta_surf < 0) & (deltaTheta_hub > 0))
 
 Q1percent = Q1.where(valid2).mean()*100
-print(f"Q1:{Q1percent.values:.2f}%")
+# print(f"Q1:{Q1percent.values:.2f}%")
 Q2percent = Q2.where(valid2).mean()*100
-print(f"Q2:{Q2percent.values:.2f}%")
+# print(f"Q2:{Q2percent.values:.2f}%")
 Q3percent = Q3.where(valid2).mean()*100
-print(f"Q3:{Q3percent.values:.2f}%")
+# print(f"Q3:{Q3percent.values:.2f}%")
 Q4percent = Q4.where(valid2).mean()*100
-print(f"Q4:{Q4percent.values:.2f}%")
+# print(f"Q4:{Q4percent.values:.2f}%")
 
 # plt.figure(figsize=(6,6))
 # plt.scatter(deltaTheta_surf.where(Q1&valid2),deltaTheta_hub.where(Q1&valid2),color='blue',alpha=0.4,label="Coupled Stability")
@@ -147,24 +157,24 @@ print(f"Q4:{Q4percent.values:.2f}%")
 # plt.text(0.8,0.3,f"{Q2percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
 # plt.text(0.1,0.1,f"{Q3percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
 # plt.text(0.1,0.9,f"{Q4percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
-# plt.xlabel("dθ/dz (40-60m)")
-# plt.ylabel("dθ/dz (120-160m)")
+# plt.xlabel(r"$d\theta_v/dz$ (40-60m)")
+# plt.ylabel(r"$d\theta_v/dz$ (120-160m)")
 # # plt.title("Static Stability Quadrant Analysis")
 # plt.legend(loc="lower right")
 # plt.show()
 
-# static_decoupled = (Q2 | Q4).where(valid2) # exclude null values (off-station or no data)
-# staticOverall_percent = 100*static_decoupled.mean() # mean considers total (non-null)
-# monthly_num = (static_decoupled.groupby("time.month").sum())
-# monthly_percent = (static_decoupled.groupby("time.month").mean())
-# print(f"{staticOverall_percent.values:.2f}% of the summer (on station) is statically decoupled")
+static_decoupled = (Q2 | Q4).where(valid2) # exclude null values (off-station or no data)
+staticOverall_percent = 100*static_decoupled.mean() # mean considers total (non-null)
+monthly_num = (static_decoupled.groupby("time.month").sum())
+monthly_percent = (static_decoupled.groupby("time.month").mean()) * 100
+print(f"{staticOverall_percent.values:.2f}% of the summer (on station) is statically decoupled")
 
 # # frequency along time:
 # months = xr.DataArray(["Jun", "Jul", "Aug", "Sep"])
 # plt.figure(figsize=(8,5))
-# plt.bar(months,monthly_num.sel(month=slice(6,9)).values,width=0.8)
+# plt.bar(months,monthly_percent.sel(month=slice(6,9)).values,width=0.8)
 # plt.xlabel("UTC Time")
-# plt.ylabel("Number of Occurrences (n)")
+# plt.ylabel("Frequency (%)")
 # # plt.title("Static Stability Decoupling (Summer 2024)")
 # plt.show()
 
@@ -175,36 +185,39 @@ print(f"Q4:{Q4percent.values:.2f}%")
 #     segment = decouple_flag.where(groups==num,drop=True)
 #     if segment.mean() == 1:
 #         duration = len(segment)
-#         if duration >= 6:
+#         if duration >= 36:
 #             print(segment.time.values[0], "to", segment.time.values[-1])
 
-# # try plot of dTheta across all heights for clarity
-# plt.figure(figsize=(10, 5))
-# dTheta.sel(height=slice(40,200)).plot(x="time", y="height", cmap="coolwarm")
-# ax = plt.gca()
-# ax.set_xlim(dTheta.time.min().values,dTheta.time.max().values)
-# ax.xaxis.set_major_locator(mdates.HourLocator(interval=2))
-# ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))  # only show hours
-# ax.set_xlabel("UTC")
-# ax.set_ylabel("Height (m)")
-# # ax.axvline(sunrise,color="purple",linestyle="--",linewidth=1.5,label='Sunrise')
-# # ax.axvline(sunset,color="black",linestyle="--",linewidth=1.5,label='Sunset')
+# try plot of dTheta across all heights for clarity
+plt.figure(figsize=(10, 5))
+dTheta.sel(height=slice(40,200)).plot(x="time",
+                                      y="height",
+                                      cmap="coolwarm",
+                                      cbar_kwargs={"label": r"$d\theta_v/dz$ (K m$^{-1}$)"})
+ax = plt.gca()
+ax.set_xlim(dTheta.time.min().values,dTheta.time.max().values)
+ax.xaxis.set_major_locator(mdates.HourLocator(interval=2))
+ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))  # only show hours
+ax.set_xlabel("UTC")
+ax.set_ylabel("Height (m)")
+# ax.axvline(sunrise,color="purple",linestyle="--",linewidth=1.5,label='Sunrise')
+# ax.axvline(sunset,color="black",linestyle="--",linewidth=1.5,label='Sunset')
 
-# ticks = ax.get_xticks()
-# et_labels = [
-#     (mdates.num2date(t) - pd.Timedelta(hours=4)).strftime("%H")
-#     for t in ticks
-# ]
-# ax2 = ax.twiny()
-# ax2.set_xlim(ax.get_xlim())
-# ax2.set_xticks(ticks)
-# ax2.set_xticklabels(et_labels)
-# ax2.set_xlabel("ET")
+ticks = ax.get_xticks()
+et_labels = [
+    (mdates.num2date(t) - pd.Timedelta(hours=4)).strftime("%H")
+    for t in ticks
+]
+ax2 = ax.twiny()
+ax2.set_xlim(ax.get_xlim())
+ax2.set_xticks(ticks)
+ax2.set_xticklabels(et_labels)
+ax2.set_xlabel("ET")
 
-# # ax.legend(loc="upper right",label="dθ/dz")
-# # plt.title("dθ/dz")
-# plt.tight_layout()
-# plt.show()
+# ax.legend(loc="upper right",label="dθ/dz")
+# plt.title("dθ/dz")
+plt.tight_layout()
+plt.show()
 
 # # plot dTheta at surface:
 # plt.figure(figsize=(10, 5))
@@ -353,13 +366,13 @@ Q3 = (BulkRi_surf < 0) & (BulkRi_hub < 0)
 Q4 = (BulkRi_surf < 0) & (BulkRi_hub > 0)
 
 Q1percent = Q1.where(valid4).mean()*100
-print(f"Q1:{Q1percent.values:.2f}%")
+# print(f"Q1:{Q1percent.values:.2f}%")
 Q2percent = Q2.where(valid4).mean()*100
-print(f"Q2:{Q2percent.values:.2f}%")
+# print(f"Q2:{Q2percent.values:.2f}%")
 Q3percent = Q3.where(valid4).mean()*100
-print(f"Q3:{Q3percent.values:.2f}%")
+# print(f"Q3:{Q3percent.values:.2f}%")
 Q4percent = Q4.where(valid4).mean()*100
-print(f"Q4:{Q4percent.values:.2f}%")
+# print(f"Q4:{Q4percent.values:.2f}%")
 
 # plt.figure(figsize=(6,6))
 # plt.scatter(BulkRi_surf.where(Q1&valid4),BulkRi_hub.where(Q1&valid4),color='blue',alpha=0.4,label="Coupled Stability")
