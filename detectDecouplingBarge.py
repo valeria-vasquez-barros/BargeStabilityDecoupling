@@ -40,8 +40,8 @@ dates2 = pd.date_range(start="2024-06-29 05:00:00",end="2024-08-08 11:00:00",fre
 dates3 = pd.date_range(start="2024-08-23 06:00:00",end="2024-09-28 10:00:00",freq="10T")
 valid = dates1.union(dates2).union(dates3)
 
-onStationA = dataAssist.time.isin(valid)
-onStationL = dataLidar.time.isin(valid)
+onStationA = dataAssist.time.isin(valid).sel(time=slice("2024-05-24 00:00:00", "2024-09-19 23:50:00"))
+onStationL = dataLidar.time.isin(valid).sel(time=slice("2024-05-24 00:00:00", "2024-09-19 23:50:00"))
 
 dataAssist = dataAssist.where(onStationA)
 dataLidar = dataLidar.where(onStationL)
@@ -69,10 +69,10 @@ ETtimes = [(t - 4) % 24 for t in UTCtimes]
 #%% ASSIST variables, static stability analysis
 
 # Grab theta, temp, pressure, relative humidity from combined assist file
-theta = dataAssist["theta"].sel(time=slice("2024-06-17 00:00:00","2024-06-17 23:59:59"))
-temp = dataAssist["temperature"].sel(time=slice("2024-06-17 00:00:00","2024-06-17 23:59:59"))
-P = dataAssist["pressure"].sel(time=slice("2024-06-17 00:00:00","2024-06-17 23:59:59")) * units.hPa
-rh = dataAssist["rh"].sel(time=slice("2024-06-17 00:00:00","2024-06-17 23:59:59"))
+theta = dataAssist["theta"]#.sel(time=slice("2024-08-24 00:00:00","2024-08-24 23:59:59"))
+temp = dataAssist["temperature"]#.sel(time=slice("2024-08-24 00:00:00","2024-08-24 23:59:59"))
+P = dataAssist["pressure"] * units.hPa
+rh = dataAssist["rh"]#.sel(time=slice("2024-08-24 00:00:00","2024-08-24 23:59:59"))
 tempK = temp + 273.15 # convert to K
 
 # Compute virtual potential temperature
@@ -188,36 +188,32 @@ print(f"{staticOverall_percent.values:.2f}% of the summer (on station) is static
 #         if duration >= 36:
 #             print(segment.time.values[0], "to", segment.time.values[-1])
 
-# try plot of dTheta across all heights for clarity
-plt.figure(figsize=(10, 5))
-dTheta.sel(height=slice(40,200)).plot(x="time",
-                                      y="height",
-                                      cmap="coolwarm",
-                                      cbar_kwargs={"label": r"$d\theta_v/dz$ (K m$^{-1}$)"})
-ax = plt.gca()
-ax.set_xlim(dTheta.time.min().values,dTheta.time.max().values)
-ax.xaxis.set_major_locator(mdates.HourLocator(interval=2))
-ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))  # only show hours
-ax.set_xlabel("UTC")
-ax.set_ylabel("Height (m)")
-# ax.axvline(sunrise,color="purple",linestyle="--",linewidth=1.5,label='Sunrise')
-# ax.axvline(sunset,color="black",linestyle="--",linewidth=1.5,label='Sunset')
-
-ticks = ax.get_xticks()
-et_labels = [
-    (mdates.num2date(t) - pd.Timedelta(hours=4)).strftime("%H")
-    for t in ticks
-]
-ax2 = ax.twiny()
-ax2.set_xlim(ax.get_xlim())
-ax2.set_xticks(ticks)
-ax2.set_xticklabels(et_labels)
-ax2.set_xlabel("ET")
-
-# ax.legend(loc="upper right",label="dθ/dz")
-# plt.title("dθ/dz")
-plt.tight_layout()
-plt.show()
+# # try plot of dTheta across all heights for clarity
+# plt.figure(figsize=(10, 5))
+# dTheta.sel(height=slice(40,200)).plot(x="time",
+#                                       y="height",
+#                                       cmap="coolwarm",
+#                                       cbar_kwargs={"label": r"$d\theta_v/dz$ (K m$^{-1}$)"})
+# ax = plt.gca()
+# ax.set_xlim(dTheta.time.min().values,dTheta.time.max().values)
+# ax.xaxis.set_major_locator(mdates.HourLocator(interval=2))
+# ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))  # only show hours
+# ax.set_xlabel("UTC")
+# ax.set_ylabel("Height (m)")
+# # ax.axvline(sunrise,color="purple",linestyle="--",linewidth=1.5,label='Sunrise')
+# # ax.axvline(sunset,color="black",linestyle="--",linewidth=1.5,label='Sunset')
+# ticks = ax.get_xticks()
+# et_labels = [
+#     (mdates.num2date(t) - pd.Timedelta(hours=4)).strftime("%H")
+#     for t in ticks
+# ]
+# ax2 = ax.twiny()
+# ax2.set_xlim(ax.get_xlim())
+# ax2.set_xticks(ticks)
+# ax2.set_xticklabels(et_labels)
+# ax2.set_xlabel("ET")
+# plt.tight_layout()
+# plt.show()
 
 # # plot dTheta at surface:
 # plt.figure(figsize=(10, 5))
@@ -278,8 +274,8 @@ hsurf_i = 40
 hsurf_f = 60
 dZ_surf = hsurf_f-hsurf_i
 # 2) change in potential temperature
-thetasurf_i = theta.sel(height=hsurf_i)
-thetasurf_f = theta.sel(height=hsurf_f)
+thetasurf_i = theta_v.sel(height=hsurf_i)
+thetasurf_f = theta_v.sel(height=hsurf_f)
 deltaTheta_surf = thetasurf_f - thetasurf_i # K
 # 3) change in temperature
 tempsurf_i = tempK.sel(height=hsurf_i)
@@ -306,8 +302,8 @@ hhub_i = 120
 hhub_f = 160
 dZ_hub = hhub_f-hhub_i
 # 2) change in potential temperature
-thetahub_i = theta.sel(height=hhub_i)
-thetahub_f = theta.sel(height=hhub_f)
+thetahub_i = theta_v.sel(height=hhub_i)
+thetahub_f = theta_v.sel(height=hhub_f)
 deltaTheta_hub = thetahub_f - thetahub_i # K
 # 3) change in temperature
 temphub_i = tempK.sel(height=hhub_i)
@@ -366,32 +362,32 @@ Q3 = (BulkRi_surf < 0) & (BulkRi_hub < 0)
 Q4 = (BulkRi_surf < 0) & (BulkRi_hub > 0)
 
 Q1percent = Q1.where(valid4).mean()*100
-# print(f"Q1:{Q1percent.values:.2f}%")
+print(f"Q1:{Q1percent.values:.2f}%")
 Q2percent = Q2.where(valid4).mean()*100
-# print(f"Q2:{Q2percent.values:.2f}%")
+print(f"Q2:{Q2percent.values:.2f}%")
 Q3percent = Q3.where(valid4).mean()*100
-# print(f"Q3:{Q3percent.values:.2f}%")
+print(f"Q3:{Q3percent.values:.2f}%")
 Q4percent = Q4.where(valid4).mean()*100
-# print(f"Q4:{Q4percent.values:.2f}%")
+print(f"Q4:{Q4percent.values:.2f}%")
 
-# plt.figure(figsize=(6,6))
-# plt.scatter(BulkRi_surf.where(Q1&valid4),BulkRi_hub.where(Q1&valid4),color='blue',alpha=0.4,label="Coupled Stability")
-# plt.scatter(BulkRi_surf.where(Q2&valid4),BulkRi_hub.where(Q2&valid4),color='gray',alpha=0.4,label="Surface Stable - Hub Turbulent")
-# plt.scatter(BulkRi_surf.where(Q3&valid4),BulkRi_hub.where(Q3&valid4),color='red',alpha=0.4,label="Coupled Turbulence")
-# plt.scatter(BulkRi_surf.where(Q4&valid4),BulkRi_hub.where(Q4&valid4),color='purple',alpha=0.4,label="Surface Turbulent - Hub Stable")
-# plt.axhline(0,color='k')
-# plt.axvline(0,color='k')
-# plt.xlim([-100,100])
-# plt.ylim([-100,100])
-# plt.text(0.8,0.9,f"{Q1percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
-# plt.text(0.8,0.1,f"{Q2percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
-# plt.text(0.1,0.3,f"{Q3percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
-# plt.text(0.1,0.9,f"{Q4percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
-# plt.xlabel("Ri_B (40-60m)")
-# plt.ylabel("Ri_B (120-160m)")
-# # plt.title("Dynamic Stability Quadrant Analysis")
-# plt.legend()
-# plt.show()
+plt.figure(figsize=(6,6))
+plt.scatter(BulkRi_surf.where(Q1&valid4),BulkRi_hub.where(Q1&valid4),color='blue',alpha=0.4,label="Coupled Stability")
+plt.scatter(BulkRi_surf.where(Q2&valid4),BulkRi_hub.where(Q2&valid4),color='gray',alpha=0.4,label="Surface Stable - Hub Turbulent")
+plt.scatter(BulkRi_surf.where(Q3&valid4),BulkRi_hub.where(Q3&valid4),color='red',alpha=0.4,label="Coupled Turbulence")
+plt.scatter(BulkRi_surf.where(Q4&valid4),BulkRi_hub.where(Q4&valid4),color='purple',alpha=0.4,label="Surface Turbulent - Hub Stable")
+plt.axhline(0,color='k')
+plt.axvline(0,color='k')
+plt.xlim([-100,100])
+plt.ylim([-100,100])
+plt.text(0.8,0.9,f"{Q1percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
+plt.text(0.8,0.1,f"{Q2percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
+plt.text(0.1,0.3,f"{Q3percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
+plt.text(0.1,0.9,f"{Q4percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
+plt.xlabel(r"$Ri_B$ (40-60m)")
+plt.ylabel(r"$Ri_B$ (120-160m)")
+# plt.title("Dynamic Stability Quadrant Analysis")
+plt.legend()
+plt.show()
 
 # decoupled = (Q2 | Q4).where(valid4)
 # overall_percent = 100*decoupled.mean()
@@ -922,7 +918,6 @@ Q4percent = Q4.where(valid4).mean()*100
 
 # # plot dTheta averages for overview
 # UTCtimes = np.array([0,2,4,6,8,10,12,14,16,18,20,22])
-
 # dTheta_surf_mean = dTheta_surf.mean(dim="height")
 # dTheta_hub_mean = dTheta_hub.mean(dim="height")
 
@@ -931,8 +926,8 @@ Q4percent = Q4.where(valid4).mean()*100
 # df_surf = df_surf.dropna(subset="dthetasurf_hm")
 # plt.figure(figsize=(12, 5))
 # sb.violinplot(df_surf,x="hour",y="dthetasurf_hm",cut=0,color="lightcoral")
-# # define quartiles
-# grouped = df_surf.groupby("hour")["dthetasurf_hm"]
+
+# grouped = df_surf.groupby("hour")["dthetasurf_hm"] # define quartiles
 # hours = []
 # means = []
 # q1s, q3s = [], []
@@ -947,28 +942,22 @@ Q4percent = Q4.where(valid4).mean()*100
 #             linewidth=3,
 #             alpha=0.8,
 #             label="IQR (25–75%)")
-# # formatting axes
-# ax = plt.gca()
-# ax.set_xlabel("UTC Time",fontsize=15)
+# ax = plt.gca() # formatting axes
+# ax.set_xlabel("UTC Time")
 # ax.set_xticks(UTCtimes)
 # ax.set_xticklabels([f"{t:02d}" for t in UTCtimes])
-# ax.tick_params(labelsize=15)
-
 # ax2 = ax.twiny()
 # ax2.set_xlim(ax.get_xlim())
 # ax2.set_xticks(ax.get_xticks())
-
 # et_labels = ((UTCtimes - 4) % 24)
-
 # ax2.set_xticklabels([f"{t:02d}" for t in et_labels])
-# ax2.set_xlabel("ET",fontsize=15)
-# ax2.tick_params(labelsize=15)
+# ax2.set_xlabel("ET")
 # # ax.axvline(x=9.25,color="purple",linestyle="--",linewidth=1.5,label='Sunrise')
 # # ax.axvline(x=0,color="black",linestyle="--",linewidth=1.5,label='Sunset')
 # ax.axhline(0,color='k')
-# ax.set_ylabel("dθ/dz",fontsize=15)
+# ax.set_ylabel(r"$d\theta_v/dz$")
 # ax.set_ylim([-0.05,0.05])
-# ax.legend(fontsize=15)
+# ax.legend()
 # # plt.title("Average surface-level dθ/dz throughout the day")
 # plt.tight_layout()
 # plt.show()
@@ -995,26 +984,20 @@ Q4percent = Q4.where(valid4).mean()*100
 #             alpha=0.8,
 #             label="IQR (25–75%)")
 # ax = plt.gca()
-# ax.set_xlabel("UTC Time",fontsize=15)
+# ax.set_xlabel("UTC Time")
 # ax.set_xticks(UTCtimes)
-# ax.tick_params(labelsize=15)
-
 # ax2 = ax.twiny()
 # ax2.set_xlim(ax.get_xlim())
 # ax2.set_xticks(ax.get_xticks())
-
 # et_labels = ((UTCtimes - 4) % 24)
-
 # ax2.set_xticklabels([f"{t:02d}" for t in et_labels])
-# ax2.set_xlabel("ET",fontsize=15)
-# ax2.tick_params(labelsize=15)
-
+# ax2.set_xlabel("ET")
 # # ax.axvline(x=9.25,color="purple",linestyle="--",linewidth=1.5,label='Sunrise')
 # # ax.axvline(x=0,color="black",linestyle="--",linewidth=1.5,label='Sunset')
 # ax.axhline(0,color='k')
-# ax.set_ylabel("dθ/dz",fontsize=15)
+# ax.set_ylabel(r"$d\theta_v/dz$")
 # ax.set_ylim([-0.05,0.05])
-# ax.legend(fontsize=15)
+# ax.legend()
 # # plt.title("Average hub-level dθ/dz throughout the day")
 # plt.tight_layout()
 # plt.show()

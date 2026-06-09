@@ -58,60 +58,70 @@ theta1 = theta1.transpose()
 interp_theta = theta1.interp(height = np.linspace(40,300,14))
 interp_theta = interp_theta.transpose()
 
+plt.figure(figsize=(10,6))
+interp_theta.plot(y="height",marker='o')
+theta1.plot(y="height",marker='s')
+plt.xlabel(r'Potential Temperature, $\theta$ (K)')
+plt.ylabel('Height (m)')
+plt.xlim(293.8,294.75)
+plt.title(' ')
+plt.legend(['Interpolated ASSIST', 'Original ASSIST'])
+
+# # validate Nicola's interpolation with combined file
+# height2 = data2["height"].sel(height=slice(40,300))
+# theta.transpose() # already interpolated during combineFiles script
+
 # plt.figure(figsize=(10,6))
-# interp_theta.plot(y="height",marker='o')
-# theta1.plot(y="height",marker='s')
-# plt.xlabel('Potential Temperature, θ (K)')
+# theta.plot(y="height",marker='o')
+# theta1.plot(y="height",marker='s') # original data, pre-interpolation
+# plt.xlabel(r'Potential Temperature, $\theta$ (K)')
 # plt.ylabel('Height (m)')
 # plt.xlim(293.8,294.75)
 # plt.title(' ')
 # plt.legend(['Interpolated ASSIST', 'Original ASSIST'])
 
-# validate Nicola's interpolation with combined file
-height2 = data2["height"].sel(height=slice(40,300))
-theta.transpose() # already interpolated during combineFiles script
+# # visualize Nicola's suggestion (virtual potential temp)
+# # interpolate temp, pressure, rh
+# temp1 = data_1["temperature"].sel(height = slice(30,350))
+# temp1 = temp1.sel(time="2024-07-20 12:00:00",method="nearest")
+# temp1 = temp1.transpose()
+# interp_temp1 = temp1.interp(height = np.linspace(40,300,14)) * units.degC
+# interp_temp1 = interp_temp1.transpose()
+# P1 = data_1["pressure"].sel(height=slice(30,350))
+# P1 = P1.sel(time="2024-07-20 12:00:00",method="nearest")
+# P1 = P1.transpose()
+# interp_P1 = P1.interp(height = np.linspace(40,300,14)) * units.hPa
+# interp_P1 = interp_P1.transpose()
+# rh1 = data_1["rh"].sel(height=slice(30,350))
+# rh1 = rh1.sel(time="2024-07-20 12:00:00",method="nearest")
+# rh1 = rh1.transpose()
+# interp_rh1 = rh1.interp(height = np.linspace(40,300,14))
+# interp_rh1 = interp_rh1.transpose()
+# # calculate virtual potential temp
+# mixingRatios1 = mixing_ratio_from_relative_humidity(interp_P1,interp_temp1,interp_rh1)
+# theta_v1 = virtual_potential_temperature(interp_P1,interp_temp1,mixingRatios1)
 
-plt.figure(figsize=(10,6))
-theta.plot(y="height",marker='o')
-theta1.plot(y="height",marker='s')
-plt.xlabel('Potential Temperature, θ (K)')
-plt.ylabel('Height (m)')
-plt.xlim(293.8,294.75)
-plt.title(' ')
-plt.legend(['Combined ASSIST', 'Original ASSIST'])
+# theta_v = theta_v.transpose()
+# theta_v1 = theta_v1.transpose()
 
-# visualize Nicola's suggestion (virtual potential temp)
-# interpolate temp, pressure, rh
-temp1 = data_1["temperature"].sel(height = slice(30,350))
-temp1 = temp1.sel(time="2024-07-20 12:00:00",method="nearest")
-temp1 = temp1.transpose()
-interp_temp1 = temp1.interp(height = np.linspace(40,300,14)) * units.degC
-interp_temp1 = interp_temp1.transpose()
-P1 = data_1["pressure"].sel(height=slice(30,350))
-P1 = P1.sel(time="2024-07-20 12:00:00",method="nearest")
-P1 = P1.transpose()
-interp_P1 = P1.interp(height = np.linspace(40,300,14)) * units.hPa
-interp_P1 = interp_P1.transpose()
-rh1 = data_1["rh"].sel(height=slice(30,350))
-rh1 = rh1.sel(time="2024-07-20 12:00:00",method="nearest")
-rh1 = rh1.transpose()
-interp_rh1 = rh1.interp(height = np.linspace(40,300,14))
-interp_rh1 = interp_rh1.transpose()
-# cakculate virtual potential temp
-mixingRatios1 = mixing_ratio_from_relative_humidity(interp_P1,interp_temp1,interp_rh1)
-theta_v1 = virtual_potential_temperature(interp_P1,interp_temp1,mixingRatios1)
+# plt.figure(figsize=(10,6))
+# theta_v.plot(y="height",marker='o')
+# theta_v1.plot(y="height",marker='s')
+# plt.xlabel('Virtual Potential Temperature, θ_v (K)')
+# plt.ylabel('Height (m)')
+# plt.xlim(295.5,296.8)
+# plt.title(' ')
+# plt.legend(['Combined ASSIST', 'Original ASSIST'])
 
-theta_v = theta_v.transpose()
-theta_v1 = theta_v1.transpose()
-
-plt.figure(figsize=(10,6))
-theta_v.plot(y="height",marker='o')
-theta_v1.plot(y="height",marker='s')
-plt.xlabel('Virtual Potential Temperature, θ_v (K)')
-plt.ylabel('Height (m)')
-plt.xlim(293.8,296.8)
-plt.title(' ')
-plt.legend(['Combined ASSIST', 'Original ASSIST'])
+# # plot potential temp and virtual potential temp together
+# plt.figure(figsize=(10,6))
+# theta.plot(y="height",marker='o')
+# theta_v.plot(y="height",marker='s')
+# plt.xlabel('Kelvin')
+# plt.ylabel('Height (m)')
+# plt.xlim(293.8,296.8)
+# plt.title(' ')
+# plt.legend([r'$\theta$', r'$\theta_v$'])
 
 # # plotting theta along height and time
 # plt.figure(figsize=(10, 5))
