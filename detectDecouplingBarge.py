@@ -80,10 +80,10 @@ ETtimes = [(t - 4) % 24 for t in UTCtimes]
 #%% ASSIST variables, static stability analysis
 
 # Grab theta, temp, pressure, relative humidity from combined assist file
-theta = dataAssist["theta"]#.sel(time=slice("2024-08-24 00:00:00","2024-08-24 23:59:59"))
-temp = dataAssist["temperature"]#.sel(time=slice("2024-08-24 00:00:00","2024-08-24 23:59:59"))
+theta = dataAssist["theta"]#.sel(time=slice("2024-07-27 00:00:00","2024-07-27 23:59:59"))
+temp = dataAssist["temperature"]#.sel(time=slice("2024-07-27 00:00:00","2024-07-27 23:59:59"))
 P = dataAssist["pressure"] * units.hPa
-rh = dataAssist["rh"]#.sel(time=slice("2024-08-24 00:00:00","2024-08-24 23:59:59"))
+rh = dataAssist["rh"]#.sel(time=slice("2024-07-27 00:00:00","2024-07-27 23:59:59"))
 tempK = temp + 273.15 # convert to K
 
 # Compute virtual potential temperature
@@ -147,43 +147,44 @@ Q3 = ((deltaTheta_surf < 0) & (deltaTheta_hub < 0))
 Q4 = ((deltaTheta_surf < 0) & (deltaTheta_hub > 0))
 
 Q1percent = Q1.where(valid2).mean()*100
-print(f"Q1:{Q1percent.values:.2f}%")
+# print(f"Q1:{Q1percent.values:.2f}%")
 Q2percent = Q2.where(valid2).mean()*100
-print(f"Q2:{Q2percent.values:.2f}%")
+# print(f"Q2:{Q2percent.values:.2f}%")
 Q3percent = Q3.where(valid2).mean()*100
-print(f"Q3:{Q3percent.values:.2f}%")
+# print(f"Q3:{Q3percent.values:.2f}%")
 Q4percent = Q4.where(valid2).mean()*100
-print(f"Q4:{Q4percent.values:.2f}%")
+# print(f"Q4:{Q4percent.values:.2f}%")
 
-plt.figure(figsize=(6,6))
-plt.scatter(deltaTheta_surf.where(Q1&valid2),deltaTheta_hub.where(Q1&valid2),color='blue',alpha=0.4,label="Coupled Stability")
-plt.scatter(deltaTheta_surf.where(Q2&valid2),deltaTheta_hub.where(Q2&valid2),color='gray',alpha=0.4,label="Surface Stable - Hub Unstable")
-plt.scatter(deltaTheta_surf.where(Q3&valid2),deltaTheta_hub.where(Q3&valid2),color='red',alpha=0.4,label="Coupled Instability")
-plt.scatter(deltaTheta_surf.where(Q4&valid2),deltaTheta_hub.where(Q4&valid2),color='purple',alpha=0.4,label="Surface Unstable - Hub Stable")
-plt.axhline(0,color='k')
-plt.axvline(0,color='k')
-plt.xlim([-0.05,0.05])
-plt.ylim([-0.05,0.05])
-plt.text(0.8,0.9,f"{Q1percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
-plt.text(0.8,0.3,f"{Q2percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
-plt.text(0.1,0.1,f"{Q3percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
-plt.text(0.1,0.9,f"{Q4percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
-plt.xlabel(r"$d\theta_v/dz$ (40-60m)")
-plt.ylabel(r"$d\theta_v/dz$ (120-160m)")
-# plt.title("Static Stability Quadrant Analysis")
-plt.legend(loc="lower right")
-plt.show()
+# plt.figure(figsize=(6,6))
+# plt.scatter(deltaTheta_surf.where(Q1&valid2),deltaTheta_hub.where(Q1&valid2),color='blue',alpha=0.4,label="Coupled Stability")
+# plt.scatter(deltaTheta_surf.where(Q2&valid2),deltaTheta_hub.where(Q2&valid2),color='gray',alpha=0.4,label="Surface Stable - Hub Unstable")
+# plt.scatter(deltaTheta_surf.where(Q3&valid2),deltaTheta_hub.where(Q3&valid2),color='red',alpha=0.4,label="Coupled Instability")
+# plt.scatter(deltaTheta_surf.where(Q4&valid2),deltaTheta_hub.where(Q4&valid2),color='purple',alpha=0.4,label="Surface Unstable - Hub Stable")
+# plt.axhline(0,color='k')
+# plt.axvline(0,color='k')
+# plt.xlim([-0.05,0.05])
+# plt.ylim([-0.05,0.05])
+# plt.text(0.8,0.9,f"{Q1percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
+# plt.text(0.8,0.3,f"{Q2percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
+# plt.text(0.1,0.1,f"{Q3percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
+# plt.text(0.1,0.9,f"{Q4percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
+# plt.xlabel(r"$d\theta_v/dz$ (40-60m)")
+# plt.ylabel(r"$d\theta_v/dz$ (120-160m)")
+# # plt.title("Static Stability Quadrant Analysis")
+# plt.legend(loc="lower right")
+# plt.show()
 
 static_decoupled = (Q2 | Q4).where(valid2) # exclude null values (off-station or no data)
 staticOverall_percent = 100*static_decoupled.mean() # mean considers total (non-null)
 monthly_num = (static_decoupled.groupby("time.month").sum())
 monthly_percent = (static_decoupled.groupby("time.month").mean()) * 100
-print(f"{staticOverall_percent.values:.2f}% of the summer (on station) is statically decoupled")
+# print(f"{staticOverall_percent.values:.2f}% of the summer (on station) is statically decoupled")
 
 # # frequency along time:
 # months = xr.DataArray(["Jun", "Jul", "Aug", "Sep"])
 # plt.figure(figsize=(8,5))
 # plt.bar(months,monthly_percent.sel(month=slice(6,9)).values,width=0.8)
+# plt.ylim(0,100)
 # plt.xlabel("UTC Time")
 # plt.ylabel("Frequency (%)")
 # # plt.title("Static Stability Decoupling (Summer 2024)")
@@ -367,19 +368,21 @@ valid4 = (
     BulkRi_hub.notnull()
     )
 
-Q1 = (BulkRi_surf > 0) & (BulkRi_hub > 0)
-Q2 = (BulkRi_surf > 0) & (BulkRi_hub < 0)
-Q3 = (BulkRi_surf < 0) & (BulkRi_hub < 0)
-Q4 = (BulkRi_surf < 0) & (BulkRi_hub > 0)
+Ric = 0
+
+Q1 = (BulkRi_surf > Ric) & (BulkRi_hub > Ric)
+Q2 = (BulkRi_surf > Ric) & (BulkRi_hub < Ric)
+Q3 = (BulkRi_surf < Ric) & (BulkRi_hub < Ric)
+Q4 = (BulkRi_surf < Ric) & (BulkRi_hub > Ric)
 
 Q1percent = Q1.where(valid4).mean()*100
-print(f"Q1:{Q1percent.values:.2f}%")
+# print(f"Q1:{Q1percent.values:.2f}%")
 Q2percent = Q2.where(valid4).mean()*100
-print(f"Q2:{Q2percent.values:.2f}%")
+# print(f"Q2:{Q2percent.values:.2f}%")
 Q3percent = Q3.where(valid4).mean()*100
-print(f"Q3:{Q3percent.values:.2f}%")
+# print(f"Q3:{Q3percent.values:.2f}%")
 Q4percent = Q4.where(valid4).mean()*100
-print(f"Q4:{Q4percent.values:.2f}%")
+# print(f"Q4:{Q4percent.values:.2f}%")
 
 plt.figure(figsize=(6,6))
 plt.scatter(BulkRi_surf.where(Q1&valid4),BulkRi_hub.where(Q1&valid4),color='blue',alpha=0.4,label="Coupled Stability")
@@ -406,24 +409,25 @@ monthly_num = (decoupled.groupby("time.month").sum())
 monthly_percent = 100*(decoupled.groupby("time.month").mean())
 print(f"{overall_percent.values:.2f}% of the summer (on station) is dynamically decoupled")
 
-# decoupled_percents = xr.DataArray([17.80795344,25.41222114,40.85354025,57.90494665,41.02812803])
-# cutoffs = xr.DataArray([-1, 0, 0.1, 0.25, 1])
-# plt.figure(figsize=(10,6))
-# # plt(cutoffs,decoupled_percents.values,width=0.8)
-# plt.plot(cutoffs,decoupled_percents,marker='o')
-# plt.ylim((0,100))
-# plt.xticks(cutoffs)
-# plt.xlabel("Critical Richardson Number")
-# plt.ylabel("Dynamic Decoupling Frequency (%)")
-# # plt.title("Critical Richardson Number Sensitivity Analysis")
-# plt.show()
+decoupled_percents = xr.DataArray([34.51,51.58,62.85,36.84])
+cutoffs = xr.DataArray([0, 0.1, 0.25, 1])
+plt.figure(figsize=(10,6))
+# plt(cutoffs,decoupled_percents.values,width=0.8)
+plt.plot(cutoffs,decoupled_percents,marker='o')
+plt.ylim((0,100))
+plt.xticks(cutoffs)
+plt.xlabel("Critical Richardson Number")
+plt.ylabel("Dynamic Decoupling Frequency (%)")
+# plt.title("Critical Richardson Number Sensitivity Analysis")
+plt.show()
 
 # # frequency along time:
 # months = xr.DataArray(["Jun", "Jul", "Aug", "Sep"])
 # plt.figure(figsize=(8,5))
-# plt.bar(months,monthly_num.sel(month=slice(6,9)).values,width=0.8)
+# plt.bar(months,monthly_percent.sel(month=slice(6,9)).values,width=0.8)
+# plt.ylim(0,100)
 # plt.xlabel("UTC Time")
-# plt.ylabel("Number of Occurrences (n)")
+# plt.ylabel("Frequency (%)")
 # # plt.title("Dynamic Stability Decoupling (Summer 2024)")
 # plt.show()
 
@@ -434,7 +438,7 @@ print(f"{overall_percent.values:.2f}% of the summer (on station) is dynamically 
 #     segment = decouple_flag.where(groups==num,drop=True)
 #     if segment.mean() == 1:
 #         duration = len(segment)
-#         if duration >= 18:
+#         if duration >= 36:
 #             print(segment.time.values[0], "to", segment.time.values[-1])
 
 # # plot surface Bulk Richardson number:
