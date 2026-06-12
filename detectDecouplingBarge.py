@@ -528,7 +528,6 @@ Q4percent = Q4.where(valid4).mean()*100
 # rose_width = np.deg2rad(30)
 # speed_bins = [0,2,4,6,8,10,12,14,16,18,20,22]
 # colors = plt.cm.viridis(np.linspace(0,1,len(speed_bins)-1))
-
 #     # define datasets
 # datasets = [
 #     (all_wd, all_ws, "All Heights"),
@@ -541,25 +540,19 @@ Q4percent = Q4.where(valid4).mean()*100
 #     subplot_kw={'projection': 'polar'},
 #     figsize=(15, 10)
 # )
-
 # legend_handles = None
 # legend_labels = None
 #     # loop through
 # for ax, (wd, ws, title) in zip(axes, datasets):
-
 #     H, _, _ = np.histogram2d(
 #         wd,
 #         ws,
 #         bins=[dir_bins, speed_bins]
 #     )
-
 #     freq = H / H.sum()
-
 #     bottom = np.zeros(len(rose_theta))
-
 #     for i in range(len(speed_bins)-1):
 #         values = freq[:, i]
-
 #         bars = ax.bar(
 #             rose_theta,
 #             values,
@@ -568,8 +561,6 @@ Q4percent = Q4.where(valid4).mean()*100
 #             color=colors[i],
 #             label=f"{speed_bins[i]}-{speed_bins[i+1]} m/s"
 #         )
-        
-          
 #         bottom += values
         
 #         ax.set_theta_zero_location("N")
@@ -585,7 +576,6 @@ Q4percent = Q4.where(valid4).mean()*100
 #     )
 #     for i in range(len(speed_bins)-1)
 # ]
-
 # fig.legend(
 #     handles=legend_handles,
 #     loc='center left',
@@ -593,7 +583,6 @@ Q4percent = Q4.where(valid4).mean()*100
 #     title='Wind Speed',
 #     fontsize=12
 # )
-
 # panel_labels = [
 #     '(a)',
 #     '(b)',
@@ -607,9 +596,9 @@ Q4percent = Q4.where(valid4).mean()*100
 #         transform=ax.transAxes,
 #         ha='center',
 #         va='center',
-#         fontsize=12
+#         fontsize=12,
+#         fontweight="bold"
 #     )
-
 # fig.subplots_adjust(bottom=0.2)
 # plt.tight_layout(rect=[0, 0, 0.88, 1])
 # plt.show()
@@ -639,98 +628,96 @@ Q4percent = Q4.where(valid4).mean()*100
 #     ax.set_xticks([0,2,4,6,8,10,12,14,16,18,20,22])
 #     # ax.set_ylim(0,6)
 
-#     ax.text(0.5,-0.175,label,transform=ax.transAxes,ha='center',va='center',fontsize=12)
+#     ax.text(
+#         0.5,-0.175,
+#         label,
+#         transform=ax.transAxes,
+#         ha='center',
+#         va='center',
+#         fontsize=12,
+#         fontweight="bold")
 
 # axes[0].set_ylabel('Frequency (%)')
 # plt.tight_layout()
 # plt.show()
 
-# SURF/HUB DTHETA AVERAGES FOR OVERVIEW
-UTCtimes = np.array([0,2,4,6,8,10,12,14,16,18,20,22])
-dTheta_surf_mean = dTheta_surf.mean(dim="height")
-dTheta_hub_mean = dTheta_hub.mean(dim="height")
+# # SURF/HUB DTHETA AVERAGES FOR OVERVIEW
+# UTCtimes = np.array([0,2,4,6,8,10,12,14,16,18,20,22])
+# dTheta_surf_mean = dTheta_surf.mean(dim="height")
+# dTheta_hub_mean = dTheta_hub.mean(dim="height")
 
-df_surf = dTheta_surf_mean.to_dataframe(name="dthetasurf_hm").reset_index()
-df_surf["hour"] = df_surf["time"].dt.hour
-df_surf = df_surf.dropna(subset="dthetasurf_hm")
-plt.figure(figsize=(12, 5))
-sb.violinplot(df_surf,x="hour",y="dthetasurf_hm",cut=0,color="lightcoral")
+# df_surf = dTheta_surf_mean.to_dataframe(name="dthetasurf_hm").reset_index()
+# df_surf["hour"] = df_surf["time"].dt.hour
+# df_surf = df_surf.dropna(subset="dthetasurf_hm")
+# df_hub = dTheta_hub_mean.to_dataframe(name="dthetahub_hm").reset_index()
+# df_hub["hour"] = df_hub["time"].dt.hour
+# df_hub = df_hub.dropna(subset="dthetahub_hm")
 
-grouped = df_surf.groupby("hour")["dthetasurf_hm"] # define quartiles
-hours = []
-means = []
-q1s, q3s = [], []
-for h, vals in grouped:
-    vals = vals.dropna()
-    hours.append(h)
-    means.append(vals.mean())
-    q1s.append(vals.quantile(0.25))
-    q3s.append(vals.quantile(0.75))
-plt.vlines(hours, q1s, q3s,
-            color="mediumslateblue",
-            linewidth=3,
-            alpha=0.8,
-            label="IQR (25–75%)")
-ax = plt.gca() # formatting axes
-ax.set_xlabel("UTC Time")
-ax.set_xticks(UTCtimes)
-ax.set_xticklabels([f"{t:02d}" for t in UTCtimes])
-ax2 = ax.twiny()
-ax2.set_xlim(ax.get_xlim())
-ax2.set_xticks(ax.get_xticks())
-et_labels = ((UTCtimes - 4) % 24)
-ax2.set_xticklabels([f"{t:02d}" for t in et_labels])
-ax2.set_xlabel("ET")
-# ax.axvline(x=9.25,color="purple",linestyle="--",linewidth=1.5,label='Sunrise')
-# ax.axvline(x=0,color="black",linestyle="--",linewidth=1.5,label='Sunset')
-ax.axhline(0,color='k')
-ax.set_ylabel(r"$d\theta_v/dz$")
-ax.set_ylim([-0.05,0.05])
-ax.legend()
-# plt.title("Average surface-level dθ/dz throughout the day")
-plt.tight_layout()
-plt.show()
+# fig, axes = plt.subplots(
+#     2, 1,
+#     figsize=(10,8),
+#     sharex=True,
+#     sharey=True
+#     )
 
-df_hub = dTheta_hub_mean.to_dataframe(name="dthetahub_hm").reset_index()
-df_hub["hour"] = df_hub["time"].dt.hour
-df_hub = df_hub.dropna(subset="dthetahub_hm")
-plt.figure(figsize=(12, 5))
-sb.violinplot(df_hub,x="hour",y="dthetahub_hm",cut=0,color="lightcoral")
-# define quartiles
-grouped = df_hub.groupby("hour")["dthetahub_hm"]
-hours = []
-means = []
-q1s, q3s = [], []
-for h, vals in grouped:
-    vals = vals.dropna()
-    hours.append(h)
-    means.append(vals.mean())
-    q1s.append(vals.quantile(0.25))
-    q3s.append(vals.quantile(0.75))
-plt.vlines(hours, q1s, q3s,
-            color="mediumslateblue",
-            linewidth=3,
-            alpha=0.8,
-            label="IQR (25–75%)")
-ax = plt.gca()
-ax.set_xlabel("UTC Time")
-ax.set_xticks(UTCtimes)
-ax.set_xticklabels([f"{t:02d}" for t in UTCtimes])
-ax2 = ax.twiny()
-ax2.set_xlim(ax.get_xlim())
-ax2.set_xticks(ax.get_xticks())
-et_labels = ((UTCtimes - 4) % 24)
-ax2.set_xticklabels([f"{t:02d}" for t in et_labels])
-ax2.set_xlabel("ET")
-# ax.axvline(x=9.25,color="purple",linestyle="--",linewidth=1.5,label='Sunrise')
-# ax.axvline(x=0,color="black",linestyle="--",linewidth=1.5,label='Sunset')
-ax.axhline(0,color='k')
-ax.set_ylabel(r"$d\theta_v/dz$")
-ax.set_ylim([-0.05,0.05])
-ax.legend()
-# plt.title("Average hub-level dθ/dz throughout the day")
-plt.tight_layout()
-plt.show()
+# ax_surf = axes[0]
+# ax_hub = axes[1]
+
+# sb.violinplot(df_surf,x="hour",y="dthetasurf_hm",cut=0,color="lightcoral",ax=ax_surf)
+# grouped = df_surf.groupby("hour")["dthetasurf_hm"] # define quartiles
+# hours = []
+# means = []
+# q1s, q3s = [], []
+# for h, vals in grouped:
+#     vals = vals.dropna()
+#     hours.append(h)
+#     means.append(vals.mean())
+#     q1s.append(vals.quantile(0.25))
+#     q3s.append(vals.quantile(0.75))
+# ax_surf.vlines(hours, q1s, q3s,
+#             color="mediumslateblue",
+#             linewidth=3,
+#             alpha=0.8,
+#             label="IQR (25–75%)")
+# ax_surf.text(0.02,0.95, "(a)", transform=ax_surf.transAxes,va="top",fontweight="bold")
+
+# sb.violinplot(df_hub,x="hour",y="dthetahub_hm",cut=0,color="lightcoral",ax=ax_hub)
+# grouped = df_hub.groupby("hour")["dthetahub_hm"]
+# hours = []
+# means = []
+# q1s, q3s = [], []
+# for h, vals in grouped:
+#     vals = vals.dropna()
+#     hours.append(h)
+#     means.append(vals.mean())
+#     q1s.append(vals.quantile(0.25))
+#     q3s.append(vals.quantile(0.75))
+# ax_hub.vlines(hours, q1s, q3s,
+#             color="mediumslateblue",
+#             linewidth=3,
+#             alpha=0.8,
+#             label="IQR (25–75%)")
+# ax_hub.text(0.02,0.95, "(b)", transform=ax_hub.transAxes,va="top",fontweight="bold")
+
+# for ax in axes:
+#     ax.axhline(0,color='k')
+#     ax.set_ylim([-0.05,0.05])
+#     ax.set_xticks(UTCtimes)
+#     ax.set_xticklabels([f"{t:02d}" for t in UTCtimes])
+#     ax.set_ylabel(r"$d\theta_v/dz$")
+
+# handles, labels = ax_surf.get_legend_handles_labels()
+# fig.legend(handles,labels,loc="center right")
+# axes[-1].set_xlabel("UTC")
+# axes[0].set_xlabel(" ")
+# ax2 = axes[0].twiny()
+# ax2.set_xlim(ax.get_xlim())
+# ax2.set_xticks(ax.get_xticks())
+# et_labels = ((UTCtimes - 4) % 24)
+# ax2.set_xticklabels([f"{t:02d}" for t in et_labels])
+# ax2.set_xlabel("ET")
+# plt.tight_layout()
+# plt.show()
 
 #%% Summary statistics of decoupled events
 
@@ -1122,93 +1109,4 @@ plt.show()
 # # ax.set_title("Wind rose from 0100-0700 UTC (Surface Turbulent - Hub Stable)")
 # ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
 # plt.show()
-
-# %% Summary statistics for whole summer
-
-# # plot dTheta averages for overview
-# UTCtimes = np.array([0,2,4,6,8,10,12,14,16,18,20,22])
-# dTheta_surf_mean = dTheta_surf.mean(dim="height")
-# dTheta_hub_mean = dTheta_hub.mean(dim="height")
-
-# df_surf = dTheta_surf_mean.to_dataframe(name="dthetasurf_hm").reset_index()
-# df_surf["hour"] = df_surf["time"].dt.hour
-# df_surf = df_surf.dropna(subset="dthetasurf_hm")
-# plt.figure(figsize=(12, 5))
-# sb.violinplot(df_surf,x="hour",y="dthetasurf_hm",cut=0,color="lightcoral")
-
-# grouped = df_surf.groupby("hour")["dthetasurf_hm"] # define quartiles
-# hours = []
-# means = []
-# q1s, q3s = [], []
-# for h, vals in grouped:
-#     vals = vals.dropna()
-#     hours.append(h)
-#     means.append(vals.mean())
-#     q1s.append(vals.quantile(0.25))
-#     q3s.append(vals.quantile(0.75))
-# plt.vlines(hours, q1s, q3s,
-#             color="mediumslateblue",
-#             linewidth=3,
-#             alpha=0.8,
-#             label="IQR (25–75%)")
-# ax = plt.gca() # formatting axes
-# ax.set_xlabel("UTC Time")
-# ax.set_xticks(UTCtimes)
-# ax.set_xticklabels([f"{t:02d}" for t in UTCtimes])
-# ax2 = ax.twiny()
-# ax2.set_xlim(ax.get_xlim())
-# ax2.set_xticks(ax.get_xticks())
-# et_labels = ((UTCtimes - 4) % 24)
-# ax2.set_xticklabels([f"{t:02d}" for t in et_labels])
-# ax2.set_xlabel("ET")
-# # ax.axvline(x=9.25,color="purple",linestyle="--",linewidth=1.5,label='Sunrise')
-# # ax.axvline(x=0,color="black",linestyle="--",linewidth=1.5,label='Sunset')
-# ax.axhline(0,color='k')
-# ax.set_ylabel(r"$d\theta_v/dz$")
-# ax.set_ylim([-0.05,0.05])
-# ax.legend()
-# # plt.title("Average surface-level dθ/dz throughout the day")
-# plt.tight_layout()
-# plt.show()
-
-# df_hub = dTheta_hub_mean.to_dataframe(name="dthetahub_hm").reset_index()
-# df_hub["hour"] = df_hub["time"].dt.hour
-# df_hub = df_hub.dropna(subset="dthetahub_hm")
-# plt.figure(figsize=(12, 5))
-# sb.violinplot(df_hub,x="hour",y="dthetahub_hm",cut=0,color="lightcoral")
-# # define quartiles
-# grouped = df_hub.groupby("hour")["dthetahub_hm"]
-# hours = []
-# means = []
-# q1s, q3s = [], []
-# for h, vals in grouped:
-#     vals = vals.dropna()
-#     hours.append(h)
-#     means.append(vals.mean())
-#     q1s.append(vals.quantile(0.25))
-#     q3s.append(vals.quantile(0.75))
-# plt.vlines(hours, q1s, q3s,
-#             color="mediumslateblue",
-#             linewidth=3,
-#             alpha=0.8,
-#             label="IQR (25–75%)")
-# ax = plt.gca()
-# ax.set_xlabel("UTC Time")
-# ax.set_xticks(UTCtimes)
-# ax2 = ax.twiny()
-# ax2.set_xlim(ax.get_xlim())
-# ax2.set_xticks(ax.get_xticks())
-# et_labels = ((UTCtimes - 4) % 24)
-# ax2.set_xticklabels([f"{t:02d}" for t in et_labels])
-# ax2.set_xlabel("ET")
-# # ax.axvline(x=9.25,color="purple",linestyle="--",linewidth=1.5,label='Sunrise')
-# # ax.axvline(x=0,color="black",linestyle="--",linewidth=1.5,label='Sunset')
-# ax.axhline(0,color='k')
-# ax.set_ylabel(r"$d\theta_v/dz$")
-# ax.set_ylim([-0.05,0.05])
-# ax.legend()
-# # plt.title("Average hub-level dθ/dz throughout the day")
-# plt.tight_layout()
-# plt.show()
-
 
