@@ -929,19 +929,22 @@ speed_bins = [0,2,4,6,8,10,12,14,16,18,20,22]
 colors = plt.cm.viridis(np.linspace(0,1,len(speed_bins)-1))
 
 datasets = [
-    (night_wd, night_ws, "Night"),
-    (sunrise_wd, sunrise_ws, "Sunrise"),
-    (day_wd, day_ws, "Day"),
-    (sunset_wd, sunset_ws, "Sunset")
+    (night_wd, night_ws, "Night1"),
+    (sunrise_wd, sunrise_ws, "Sunrise1"),
+    (day_wd, day_ws, "Day1"),
+    (sunset_wd, sunset_ws, "Sunset1"),
+    (nightWD, nightWS, "Night2"),
+    (sunriseWD, sunriseWS, "Sunrise2"),
+    (dayWD, dayWS, "Day2"),
+    (sunsetWD, sunsetWS, "Sunset2")
 ]
     # set up
 fig, axes = plt.subplots(
-    1, 4,
+    2, 4,
     subplot_kw={'projection': 'polar'},
-    figsize=(15, 10)
+    figsize=(15, 8)
 )
-legend_handles = None
-legend_labels = None
+axes=axes.flatten()
     # loop through
 for ax, (wd, ws, title) in zip(axes, datasets):
     H, _, _ = np.histogram2d(
@@ -965,9 +968,9 @@ for ax, (wd, ws, title) in zip(axes, datasets):
         
         ax.set_theta_zero_location("N")
         ax.set_theta_direction(-1)
-        ax.set_ylim(0, 0.30) # same max for all plots (20% here)
-        ax.set_yticks([0.05, 0.10, 0.15, 0.20, 0.25, 0.30])
-        ax.set_yticklabels(['5%', '', '15%', '', '25%', ''])
+        ax.set_ylim(0, 0.40) # same max for all plots (20% here)
+        ax.set_yticks([0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40])
+        ax.set_yticklabels(['5%', '', '15%', '', '25%', '', '35%', ''])
         
 legend_handles = [
     Patch(
@@ -987,7 +990,11 @@ panel_labels = [
     '(a)',
     '(b)',
     '(c)',
-    '(d)'
+    '(d)',
+    '(e)',
+    '(f)',
+    '(g)',
+    '(h)'
 ]
 
 for ax, panel_label in zip(axes, panel_labels):
@@ -1000,8 +1007,14 @@ for ax, panel_label in zip(axes, panel_labels):
         fontsize=12,
         fontweight="bold"
     )
-fig.subplots_adjust(bottom=0.2)
-plt.tight_layout(rect=[0, 0, 0.88, 1])
+fig.subplots_adjust(
+    left=0.06,
+    right=0.86,
+    bottom=0.08,
+    top=0.95,
+    wspace=0.3,
+    hspace=0.01
+)# plt.tight_layout(rect=[0, 0.75, 0.88, 0.75])
 plt.show()
 
 # # Look at decoupled wind roses by surface and hub height
@@ -1085,181 +1098,6 @@ coupled_times = all_times.where(coupledMask,drop=True)
 # # ax.set_title("Wind rose (Coupled)")
 # ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
 # plt.show()
-
-# Wind rose (coupled) for each time of day
-coupledTimes = coupled_times.dt.hour + coupled_times.dt.minute/60
-night = (coupledTimes > 1) & (coupledTimes < 7)
-sunrising = (coupledTimes >= 7) & (coupledTimes <= 13)
-day = (coupledTimes > 13) & (coupledTimes < 19)
-sunsetting = (coupledTimes >= 19) | (coupledTimes <= 1)
-
-coupled_ws = wind_speed.sel(time=coupled_times)
-coupled_wd = np.rad2deg(wind_direction.sel(time=coupled_times))
-
-nightWS = coupled_ws.where(night,drop=True).values.flatten()
-nightWD = coupled_wd.where(night,drop=True).values.flatten()
-sunriseWS = coupled_ws.where(sunrising,drop=True).values.flatten()
-sunriseWD = coupled_wd.where(sunrising,drop=True).values.flatten()
-dayWS = coupled_ws.where(day,drop=True).values.flatten()
-dayWD = coupled_wd.where(day,drop=True).values.flatten()
-sunsetWS = coupled_ws.where(sunsetting,drop=True).values.flatten()
-sunsetWD = coupled_wd.where(sunsetting,drop=True).values.flatten()
-
-dir_bins = np.arange(0,361,30)
-counts, _ = np.histogram(coupled_wd,bins=dir_bins)
-freq = counts / counts.sum() * 100
-rose_theta = np.deg2rad(dir_bins[:-1])
-rose_width = np.deg2rad(30)
-speed_bins = [0,2,4,6,8,10,12,14,16,18,20,22,24]
-
-    # shared settings
-dir_bins = np.arange(0,361,30)
-counts, _ = np.histogram(coupled_wd,bins=dir_bins)
-freq = counts / counts.sum() * 100
-rose_theta = np.deg2rad(dir_bins[:-1])
-rose_width = np.deg2rad(30)
-speed_bins = [0,2,4,6,8,10,12,14,16,18,20,22]
-colors = plt.cm.viridis(np.linspace(0,1,len(speed_bins)-1))
-
-datasets = [
-    (nightWD, nightWS, "Night"),
-    (sunriseWD, sunriseWS, "Sunrise"),
-    (dayWD, dayWS, "Day"),
-    (sunsetWD, sunsetWS, "Sunset")
-]
-    # set up
-fig, axes = plt.subplots(
-    1, 4,
-    subplot_kw={'projection': 'polar'},
-    figsize=(15, 10)
-)
-legend_handles = None
-legend_labels = None
-    # loop through
-for ax, (wd, ws, title) in zip(axes, datasets):
-    H, _, _ = np.histogram2d(
-        wd,
-        ws,
-        bins=[dir_bins, speed_bins]
-    )
-    freq = H / H.sum()
-    bottom = np.zeros(len(rose_theta))
-    for i in range(len(speed_bins)-1):
-        values = freq[:, i]
-        bars = ax.bar(
-            rose_theta,
-            values,
-            width=rose_width,
-            bottom=bottom,
-            color=colors[i],
-            label=f"{speed_bins[i]}-{speed_bins[i+1]} m/s"
-        )
-        bottom += values
-        
-        ax.set_theta_zero_location("N")
-        ax.set_theta_direction(-1)
-        ax.set_ylim(0, 0.40) # same max for all plots (20% here)
-        ax.set_yticks([0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40])
-        ax.set_yticklabels(['5%', '', '15%', '', '25%', '', '35%', ''])
-        
-legend_handles = [
-    Patch(
-        facecolor=colors[i],
-        label=f"{speed_bins[i]}-{speed_bins[i+1]} m/s"
-    )
-    for i in range(len(speed_bins)-1)
-]
-fig.legend(
-    handles=legend_handles,
-    loc='center left',
-    bbox_to_anchor=(0.9, 0.5),
-    title='Wind Speed',
-    fontsize=12
-)
-panel_labels = [
-    '(a)',
-    '(b)',
-    '(c)',
-    '(d)'
-]
-
-for ax, panel_label in zip(axes, panel_labels):
-    ax.text(
-        0.5, -0.2,
-        panel_label,
-        transform=ax.transAxes,
-        ha='center',
-        va='center',
-        fontsize=12,
-        fontweight="bold"
-    )
-fig.subplots_adjust(bottom=0.2)
-plt.tight_layout(rect=[0, 0, 0.88, 1])
-plt.show()
-
-H,dir_edges,speed_edges = np.histogram2d(nightWD,nightWS,bins=[dir_bins,speed_bins])
-freq = H / H.sum()
-bottom = np.zeros(len(rose_theta))
-fig = plt.figure(figsize=(6,6))
-ax = plt.subplot(111,polar=True)
-colors = plt.cm.viridis(np.linspace(0,1,len(speed_bins)-1))
-for i in range(len(speed_bins)-1):
-    values = freq[:, i]
-    bars = ax.bar(rose_theta, values, width=rose_width, bottom=bottom, color=colors[i], label=f"{speed_bins[i]}-{speed_bins[i+1]} m/s")
-    bottom += values
-ax.set_theta_zero_location("N")
-ax.set_theta_direction(-1)
-# ax.set_title("Wind rose from 0100-0700 UTC (Coupled cases)")
-ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
-plt.show()
-
-H,dir_edges,speed_edges = np.histogram2d(sunriseWD,sunriseWS,bins=[dir_bins,speed_bins])
-freq = H / H.sum()
-bottom = np.zeros(len(rose_theta))
-fig = plt.figure(figsize=(6,6))
-ax = plt.subplot(111,polar=True)
-colors = plt.cm.viridis(np.linspace(0,1,len(speed_bins)-1))
-for i in range(len(speed_bins)-1):
-    values = freq[:, i]
-    bars = ax.bar(rose_theta, values, width=rose_width, bottom=bottom, color=colors[i], label=f"{speed_bins[i]}-{speed_bins[i+1]} m/s")
-    bottom += values
-ax.set_theta_zero_location("N")
-ax.set_theta_direction(-1)
-# ax.set_title("Wind rose from 0700-1300 UTC (Coupled cases)")
-ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
-plt.show()
-
-H,dir_edges,speed_edges = np.histogram2d(dayWD,dayWS,bins=[dir_bins,speed_bins])
-freq = H / H.sum()
-bottom = np.zeros(len(rose_theta))
-fig = plt.figure(figsize=(6,6))
-ax = plt.subplot(111,polar=True)
-colors = plt.cm.viridis(np.linspace(0,1,len(speed_bins)-1))
-for i in range(len(speed_bins)-1):
-    values = freq[:, i]
-    bars = ax.bar(rose_theta, values, width=rose_width, bottom=bottom, color=colors[i], label=f"{speed_bins[i]}-{speed_bins[i+1]} m/s")
-    bottom += values
-ax.set_theta_zero_location("N")
-ax.set_theta_direction(-1)
-# ax.set_title("Wind rose from 1300-1900 UTC (Coupled cases)")
-ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
-plt.show()
-
-H,dir_edges,speed_edges = np.histogram2d(sunsetWD,sunsetWS,bins=[dir_bins,speed_bins])
-freq = H / H.sum()
-bottom = np.zeros(len(rose_theta))
-fig = plt.figure(figsize=(6,6))
-ax = plt.subplot(111,polar=True)
-colors = plt.cm.viridis(np.linspace(0,1,len(speed_bins)-1))
-for i in range(len(speed_bins)-1):
-    values = freq[:, i]
-    bars = ax.bar(rose_theta, values, width=rose_width, bottom=bottom, color=colors[i], label=f"{speed_bins[i]}-{speed_bins[i+1]} m/s")
-    bottom += values
-ax.set_theta_zero_location("N")
-ax.set_theta_direction(-1)
-# ax.set_title("Wind rose from 1900-0100 UTC (Coupled cases)")
-ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
-plt.show()
 
 # plt.hist(nightWS,bins=50)
 # plt.xlabel("Wind speed (m/s)")
