@@ -47,16 +47,16 @@ onStationL = dataLidar.time.isin(valid).sel(time=slice("2024-05-24 00:00:00", "2
 dataAssist = dataAssist.where(onStationA)
 dataLidar = dataLidar.where(onStationL)
 
-# # Specify times that data is available, excludes unavailable data among all instruments
-# assistAvailSurf = dataAssist["theta"].sel(time=slice("2024-05-24","2024-09-19"),height=slice(40,60)).notnull().any("height")
-# assistAvailHub = dataAssist["theta"].sel(time=slice("2024-05-24","2024-09-19"),height=slice(120,160)).notnull().any("height")
-# lidarAvailSurf = dataLidar["wind_speed"].sel(time=slice("2024-05-24","2024-09-19"),height=slice(40,60)).notnull().any("height")
-# lidarAvailHub = dataLidar["wind_speed"].sel(time=slice("2024-05-24","2024-09-19"),height=slice(120,160)).notnull().any("height")
+# Specify times that data is available, excludes unavailable data among all instruments
+assistAvailSurf = dataAssist["theta"].sel(time=slice("2024-06-18","2024-09-19"),height=slice(40,60)).notnull().any("height")
+assistAvailHub = dataAssist["theta"].sel(time=slice("2024-06-18","2024-09-19"),height=slice(120,160)).notnull().any("height")
+lidarAvailSurf = dataLidar["wind_speed"].sel(time=slice("2024-06-18","2024-09-19"),height=slice(40,60)).notnull().any("height")
+lidarAvailHub = dataLidar["wind_speed"].sel(time=slice("2024-06-18","2024-09-19"),height=slice(120,160)).notnull().any("height")
 
-# overlap = (assistAvailSurf & assistAvailHub & lidarAvailSurf & lidarAvailHub)
+overlap = (assistAvailSurf & assistAvailHub & lidarAvailSurf & lidarAvailHub)
 
-# dataAssist = dataAssist.where(overlap)
-# dataLidar = dataLidar.where(overlap)
+dataAssist = dataAssist.where(overlap)
+dataLidar = dataLidar.where(overlap)
 
 # collect sunrise/sunset info
 location = LocationInfo(latitude=dataAssist.VIP_station_lat, longitude=dataAssist.VIP_station_lon, timezone="UTC")
@@ -228,7 +228,8 @@ monthly_percent = (static_decoupled.groupby("time.month").mean()) * 100
 # plt.tight_layout()
 # plt.show()
 
-# # dTheta for all prolonged decoupling
+
+# # DTHETA FOR ALL PROLONGED DECOUPLING
 # case1 = dTheta.sel(time=slice("2024-06-17 00:00:00","2024-06-17 23:59:59"),height=slice(40,200))
 # case2 = dTheta.sel(time=slice("2024-07-03 00:00:00","2024-07-03 23:59:59"),height=slice(40,200))
 # case3 = dTheta.sel(time=slice("2024-07-19 00:00:00","2024-07-19 23:59:59"),height=slice(40,200))
@@ -1094,57 +1095,147 @@ case3 = (decoupled_times2 >= 15.83) & (decoupled_times2 <= 23.9)
 case4 = (decoupled_times2 >= 17) & (decoupled_times2 <= 23)
 case5 = (decoupled_times2 >= 16) & (decoupled_times2 <= 22)
 
-case1_ws = decoupled_ws2.where(case1,drop=True).values.flatten()
-case1_wd = decoupled_wd2.where(case1,drop=True).values.flatten()
-sunrise_ws = decoupled_ws2.where(sunrising,drop=True).values.flatten()
-sunrise_wd = decoupled_wd2.where(sunrising,drop=True).values.flatten()
-day_ws = decoupled_ws2.where(day,drop=True).values.flatten()
-day_wd = decoupled_wd2.where(day,drop=True).values.flatten()
-sunset_ws = decoupled_ws2.where(sunsetting,drop=True).values.flatten()
-sunset_wd = decoupled_wd2.where(sunsetting,drop=True).values.flatten()
+case1_ws = decoupled_ws2.sel(time="2024-06-17").where(case1,drop=True).values.flatten()
+case1_wd = decoupled_wd2.sel(time="2024-06-17").where(case1,drop=True).values.flatten()
+case2_ws = decoupled_ws2.sel(time="2024-07-03").where(case2,drop=True).values.flatten()
+case2_wd = decoupled_wd2.sel(time="2024-07-03").where(case2,drop=True).values.flatten()
+case3_ws = decoupled_ws2.sel(time="2024-07-19").where(case3,drop=True).values.flatten()
+case3_wd = decoupled_wd2.sel(time="2024-07-19").where(case3,drop=True).values.flatten()
+case4_ws = decoupled_ws2.sel(time="2024-07-27").where(case4,drop=True).values.flatten()
+case4_wd = decoupled_wd2.sel(time="2024-07-27").where(case4,drop=True).values.flatten()
+case5_ws = decoupled_ws2.sel(time="2024-08-24").where(case5,drop=True).values.flatten()
+case5_wd = decoupled_wd2.sel(time="2024-08-24").where(case5,drop=True).values.flatten()
 
-coupledTimes = coupled_times.dt.hour + coupled_times.dt.minute/60
-night = (coupledTimes > 1) & (coupledTimes < 7)
-sunrising = (coupledTimes >= 7) & (coupledTimes <= 13)
-day = (coupledTimes > 13) & (coupledTimes < 19)
-sunsetting = (coupledTimes >= 19) | (coupledTimes <= 1)
+#     # shared settings
+# dir_bins = np.arange(0,361,30)
+# # counts, _ = np.histogram(decoupled_wd,bins=dir_bins)
+# # freq = counts / counts.sum() * 100
+# rose_theta = np.deg2rad(dir_bins[:-1])
+# rose_width = np.deg2rad(30)
+# speed_bins = [0,2,4,6,8,10,12,14,16,18,20,22]
+# colors = plt.cm.viridis(np.linspace(0,1,len(speed_bins)-1))
 
+# datasets = [
+#     (case1_wd, case1_ws, "case1"),
+#     (case2_wd, case2_ws, "case2"),
+#     (case3_wd, case3_ws, "case3"),
+#     (case4_wd, case4_ws, "case4"),
+#     (case5_wd, case5_ws, "case5")
+# ]
+#     # set up
+# fig, axes = plt.subplots(
+#     3, 2,
+#     subplot_kw={'projection': 'polar'},
+#     figsize=(10, 15)
+# )
+# axes=axes.flatten()
+#     # loop through
+# for ax, (wd, ws, title) in zip(axes, datasets):
+#     H, _, _ = np.histogram2d(
+#         wd,
+#         ws,
+#         bins=[dir_bins, speed_bins]
+#     )
+#     freq = H / H.sum()
+#     bottom = np.zeros(len(rose_theta))
+#     for i in range(len(speed_bins)-1):
+#         values = freq[:, i]
+#         bars = ax.bar(
+#             rose_theta,
+#             values,
+#             width=rose_width,
+#             bottom=bottom,
+#             color=colors[i],
+#             label=f"{speed_bins[i]}-{speed_bins[i+1]} m/s"
+#         )
+#         bottom += values
+        
+#         ax.set_theta_zero_location("N")
+#         ax.set_theta_direction(-1)
+#         ax.set_ylim(0, 1.0) # same max for all plots (20% here)
+#         ax.set_yticks([0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45,
+#                        0.50, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0])
+#         ax.set_yticklabels(['', '10%', '', '', '25%', '', '', '', '', '50%', 
+#                             '', '', '', '', '75%', '', '', '', '', '100%'])
+
+# legend_handles = [
+#     Patch(
+#         facecolor=colors[i],
+#         label=f"{speed_bins[i]}-{speed_bins[i+1]} m/s"
+#     )
+#     for i in range(len(speed_bins)-1)
+# ]
+# fig.delaxes(axes[5])
+# fig.legend(
+#     handles=legend_handles,
+#     loc='center left',
+#     bbox_to_anchor=(0.9, 0.5),
+#     title='Wind Speed',
+#     fontsize=12
+# )
+# panel_labels = [
+#     '(a)',
+#     '(b)',
+#     '(c)',
+#     '(d)',
+#     '(e)'
+# ]
+
+# for ax, panel_label in zip(axes, panel_labels):
+#     ax.text(
+#         0.5, -0.15,
+#         panel_label,
+#         transform=ax.transAxes,
+#         ha='center',
+#         va='center',
+#         fontsize=12,
+#         fontweight="bold"
+#     )
+# fig.subplots_adjust(
+#     left=0.1,
+#     right=0.86,
+#     bottom=0.05,
+#     top=0.95,
+#     wspace=0.2,
+#     hspace=0.01
+# )
+# plt.show()
+
+
+# COUPLED WIND ROSES DURING PROLONGED DECOUPLING CASES
 coupled_ws = wind_speed.sel(time=coupled_times)
 coupled_wd = np.rad2deg(wind_direction.sel(time=coupled_times))
 
-nightWS = coupled_ws.where(night,drop=True).values.flatten()
-nightWD = coupled_wd.where(night,drop=True).values.flatten()
-sunriseWS = coupled_ws.where(sunrising,drop=True).values.flatten()
-sunriseWD = coupled_wd.where(sunrising,drop=True).values.flatten()
-dayWS = coupled_ws.where(day,drop=True).values.flatten()
-dayWD = coupled_wd.where(day,drop=True).values.flatten()
-sunsetWS = coupled_ws.where(sunsetting,drop=True).values.flatten()
-sunsetWD = coupled_wd.where(sunsetting,drop=True).values.flatten()
+notcase1_ws = coupled_ws.sel(time="2024-06-17").values.flatten()
+notcase1_wd = coupled_wd.sel(time="2024-06-17").values.flatten()
+notcase2_ws = coupled_ws.sel(time="2024-07-03").values.flatten()
+notcase2_wd = coupled_wd.sel(time="2024-07-03").values.flatten()
+notcase3_ws = coupled_ws.sel(time="2024-07-19").values.flatten()
+notcase3_wd = coupled_wd.sel(time="2024-07-19").values.flatten()
+notcase4_ws = coupled_ws.sel(time="2024-07-27").values.flatten()
+notcase4_wd = coupled_wd.sel(time="2024-07-27").values.flatten()
+notcase5_ws = coupled_ws.sel(time="2024-08-24").values.flatten()
+notcase5_wd = coupled_wd.sel(time="2024-08-24").values.flatten()
 
-    # shared settings
+ # shared settings
 dir_bins = np.arange(0,361,30)
-counts, _ = np.histogram(coupled_wd,bins=dir_bins)
-freq = counts / counts.sum() * 100
 rose_theta = np.deg2rad(dir_bins[:-1])
 rose_width = np.deg2rad(30)
 speed_bins = [0,2,4,6,8,10,12,14,16,18,20,22]
 colors = plt.cm.viridis(np.linspace(0,1,len(speed_bins)-1))
 
 datasets = [
-    (night_wd, night_ws, "Night1"),
-    (sunrise_wd, sunrise_ws, "Sunrise1"),
-    (day_wd, day_ws, "Day1"),
-    (sunset_wd, sunset_ws, "Sunset1"),
-    (nightWD, nightWS, "Night2"),
-    (sunriseWD, sunriseWS, "Sunrise2"),
-    (dayWD, dayWS, "Day2"),
-    (sunsetWD, sunsetWS, "Sunset2")
+    (notcase1_wd, notcase1_ws, "notcase1"),
+    (notcase2_wd, notcase2_ws, "notcase2"),
+    (notcase3_wd, notcase3_ws, "notcase3"),
+    (notcase4_wd, notcase4_ws, "notcase4"),
+    (notcase5_wd, notcase5_ws, "notcase5")
 ]
     # set up
 fig, axes = plt.subplots(
-    2, 4,
+    3, 2,
     subplot_kw={'projection': 'polar'},
-    figsize=(15, 8)
+    figsize=(10, 15)
 )
 axes=axes.flatten()
     # loop through
@@ -1170,10 +1261,12 @@ for ax, (wd, ws, title) in zip(axes, datasets):
         
         ax.set_theta_zero_location("N")
         ax.set_theta_direction(-1)
-        ax.set_ylim(0, 0.40) # same max for all plots (20% here)
-        ax.set_yticks([0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40])
-        ax.set_yticklabels(['5%', '', '15%', '', '25%', '', '35%', ''])
-        
+        ax.set_ylim(0, 0.75) # same max for all plots (20% here)
+        ax.set_yticks([0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45,
+                       0.50, 0.55, 0.6, 0.65, 0.7, 0.75])
+        ax.set_yticklabels(['', '10%', '', '', '25%', '', '', '', '', '50%', 
+                            '', '', '', '', '75%'])
+
 legend_handles = [
     Patch(
         facecolor=colors[i],
@@ -1181,6 +1274,7 @@ legend_handles = [
     )
     for i in range(len(speed_bins)-1)
 ]
+fig.delaxes(axes[5])
 fig.legend(
     handles=legend_handles,
     loc='center left',
@@ -1193,15 +1287,12 @@ panel_labels = [
     '(b)',
     '(c)',
     '(d)',
-    '(e)',
-    '(f)',
-    '(g)',
-    '(h)'
+    '(e)'
 ]
 
 for ax, panel_label in zip(axes, panel_labels):
     ax.text(
-        0.5, -0.2,
+        0.5, -0.15,
         panel_label,
         transform=ax.transAxes,
         ha='center',
@@ -1210,11 +1301,11 @@ for ax, panel_label in zip(axes, panel_labels):
         fontweight="bold"
     )
 fig.subplots_adjust(
-    left=0.06,
+    left=0.1,
     right=0.86,
-    bottom=0.08,
+    bottom=0.05,
     top=0.95,
-    wspace=0.3,
+    wspace=0.2,
     hspace=0.01
 )
 plt.show()
