@@ -1,0 +1,20 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: BargeStabilityDecoupling
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Valeria
+    family-names: Vasquez-Barros
+repository-code: >-
+  https://github.com/valeria-vasquez-barros/BargeStabilityDecoupling
+abstract: >-
+  Python scripts that include and analyze WFIP3 barge ASSIST
+  and profiling lidar measurements to identify static and
+  dynamic atmospheric stability decoupling
+license: AGPL-3.0
+commit: cfe540a
