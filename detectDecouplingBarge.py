@@ -27,18 +27,28 @@ plt.rcParams['legend.fontsize'] = 12
 
 # Open the data files
 filepathAssist = r"C:\Users\valer\Documents\WFIP3\barg.assist.tropoe.z01.combined.revised2.nc"
-filepathLidar = r"C:\Users\valer\Documents\WFIP3\wfip3.barg.lidar.z05.c0.nc"
-# filepathLidar = r"C:\Users\valer\Documents\WFIP3\lidar.test\barg.lidar.z02.combined.nc"
+# filepathLidar = r"C:\Users\valer\Documents\WFIP3\wfip3.barg.lidar.z05.c0.nc"
+filepathLidar = r"C:\Users\valer\Documents\WFIP3\lidar.test\barg.lidar.z02.combined.nc"
 dataAssist = xr.open_dataset(filepathAssist,decode_times = "true")
 dataLidar = xr.open_dataset(filepathLidar,decode_times="true")
 
-# Update the 'time' coordinate in the xarray dataset to the converted datetimes
-dataLidar['time'] = xr.DataArray(dataLidar.base_time.values, dims=["time"])
-dataLidar['z'] = xr.DataArray(dataLidar.Z.values, dims=["z"])
-dataLidar = dataLidar.rename({"z": "height"})
-# Reorder dimensions so that 'time' is the first dimension
-dataLidar = dataLidar.transpose('time', 'height')
-dataLidar = dataLidar.interp(height = np.linspace(40,300,14))
+# print(dataAssist.notnull().sum())
+# print(dataAssist.isnull().sum())
+# print(dataLidar.notnull().sum())
+# print(dataLidar.isnull().sum())
+
+# assist has 239,904 total values (17136 times x 14 heights), 87,010 are null
+    # before any post-processing
+# lidar has 268,128 total values (19152 times x 14 heights), 77,825 are null
+    # before any post-processing
+
+# # Update the 'time' coordinate in the xarray dataset to the converted datetimes
+# dataLidar['time'] = xr.DataArray(dataLidar.base_time.values, dims=["time"])
+# dataLidar['z'] = xr.DataArray(dataLidar.Z.values, dims=["z"])
+# dataLidar = dataLidar.rename({"z": "height"})
+# # Reorder dimensions so that 'time' is the first dimension
+# dataLidar = dataLidar.transpose('time', 'height')
+# dataLidar = dataLidar.interp(height = np.linspace(40,300,14))
 
 # # Visualize null values before masking
 # plt.figure(figsize=(10,6))
@@ -56,16 +66,31 @@ onStationL = dataLidar.time.isin(valid).sel(time=slice("2024-05-24 00:00:00", "2
 dataAssist = dataAssist.where(onStationA)
 dataLidar = dataLidar.where(onStationL)
 
+# print(dataAssist.notnull().sum())
+# print(dataAssist.isnull().sum())
+# print(dataLidar.notnull().sum())
+# print(dataLidar.isnull().sum())
+# assist has same total, but now 155,344 are null by removing off-station dates
+# lidar lost 28,244 values by matching date range with assist, plus 124,836 null values
+    # with off-station mask
+
 # Specify times that data is available, excludes unavailable data among all instruments
-assistAvailSurf = dataAssist["theta"].sel(time=slice("2024-06-18","2024-09-19"),height=slice(40,60)).notnull().any("height")
-assistAvailHub = dataAssist["theta"].sel(time=slice("2024-06-18","2024-09-19"),height=slice(120,160)).notnull().any("height")
-lidarAvailSurf = dataLidar["WS"].sel(time=slice("2024-06-18","2024-09-19"),height=slice(40,60)).notnull().any("height")
-lidarAvailHub = dataLidar["WS"].sel(time=slice("2024-06-18","2024-09-19"),height=slice(120,160)).notnull().any("height")
+assistAvailSurf = dataAssist["theta"].sel(height=slice(40,60)).notnull().all("height")
+assistAvailHub = dataAssist["theta"].sel(height=slice(120,160)).notnull().all("height")
+lidarAvailSurf = dataLidar["wind_speed"].sel(height=slice(40,60)).notnull().all("height")
+lidarAvailHub = dataLidar["wind_speed"].sel(height=slice(120,160)).notnull().all("height")
 
 overlap = (assistAvailSurf & assistAvailHub & lidarAvailSurf & lidarAvailHub)
 
 dataAssist = dataAssist.where(overlap)
 dataLidar = dataLidar.where(overlap)
+
+# print(dataAssist.notnull().sum())
+# print(dataAssist.isnull().sum())
+# print(dataLidar.notnull().sum())
+# print(dataLidar.isnull().sum())
+# assist has same total, but finally 167,720 null values
+# lidar has 176,315 null values + 28,244 null values from prior step
 
 # # collect sunrise/sunset info
 # location = LocationInfo(latitude=dataAssist.VIP_station_lat, longitude=dataAssist.VIP_station_lon, timezone="UTC")
@@ -167,50 +192,50 @@ Q3percent = Q3.where(valid2).mean()*100
 Q4percent = Q4.where(valid2).mean()*100
 # print(f"Q4:{Q4percent.values:.2f}%")
 
-plt.figure(figsize=(6,6))
-plt.scatter(deltaTheta_surf.where(Q1&valid2),deltaTheta_hub.where(Q1&valid2),color='blue',alpha=0.4,label="Coupled Stability")
-plt.scatter(deltaTheta_surf.where(Q2&valid2),deltaTheta_hub.where(Q2&valid2),color='gray',alpha=0.4,label="Surface Stable - Hub Unstable")
-plt.scatter(deltaTheta_surf.where(Q3&valid2),deltaTheta_hub.where(Q3&valid2),color='red',alpha=0.4,label="Coupled Instability")
-plt.scatter(deltaTheta_surf.where(Q4&valid2),deltaTheta_hub.where(Q4&valid2),color='purple',alpha=0.4,label="Surface Unstable - Hub Stable")
-plt.axhline(0,color='k')
-plt.axvline(0,color='k')
-plt.xlim([-0.05,0.05])
-plt.ylim([-0.05,0.05])
-plt.text(0.8,0.9,f"{Q1percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
-plt.text(0.8,0.3,f"{Q2percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
-plt.text(0.1,0.1,f"{Q3percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
-plt.text(0.1,0.9,f"{Q4percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
-plt.xlabel(r"$d\theta_v/dz$ (40-60m)")
-plt.ylabel(r"$d\theta_v/dz$ (120-160m)")
-# plt.title("Static Stability Quadrant Analysis")
-plt.legend(loc="lower right")
-plt.show()
+# plt.figure(figsize=(6,6))
+# plt.scatter(deltaTheta_surf.where(Q1&valid2),deltaTheta_hub.where(Q1&valid2),color='blue',alpha=0.4,label="Coupled Stability")
+# plt.scatter(deltaTheta_surf.where(Q2&valid2),deltaTheta_hub.where(Q2&valid2),color='gray',alpha=0.4,label="Surface Stable - Hub Unstable")
+# plt.scatter(deltaTheta_surf.where(Q3&valid2),deltaTheta_hub.where(Q3&valid2),color='red',alpha=0.4,label="Coupled Instability")
+# plt.scatter(deltaTheta_surf.where(Q4&valid2),deltaTheta_hub.where(Q4&valid2),color='purple',alpha=0.4,label="Surface Unstable - Hub Stable")
+# plt.axhline(0,color='k')
+# plt.axvline(0,color='k')
+# plt.xlim([-0.05,0.05])
+# plt.ylim([-0.05,0.05])
+# plt.text(0.8,0.9,f"{Q1percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
+# plt.text(0.8,0.3,f"{Q2percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
+# plt.text(0.1,0.1,f"{Q3percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
+# plt.text(0.1,0.9,f"{Q4percent.values:.1f}%",transform=plt.gca().transAxes,fontweight="bold")
+# plt.xlabel(r"$d\theta_v/dz$ (40-60m)")
+# plt.ylabel(r"$d\theta_v/dz$ (120-160m)")
+# # plt.title("Static Stability Quadrant Analysis")
+# plt.legend(loc="lower right")
+# plt.show()
 
-static_decoupled = (Q2 | Q4).where(valid2) # exclude null values (off-station or no data)
-staticOverall_percent = 100*static_decoupled.mean() # mean considers total (non-null)
-monthly_num = (static_decoupled.groupby("time.month").sum())
-monthly_percent = (static_decoupled.groupby("time.month").mean()) * 100
+# static_decoupled = (Q2 | Q4).where(valid2) # exclude null values (off-station or no data)
+# staticOverall_percent = 100*static_decoupled.mean() # mean considers total (non-null)
+# monthly_num = (static_decoupled.groupby("time.month").sum())
+# monthly_percent = (static_decoupled.groupby("time.month").mean()) * 100
 # print(f"{staticOverall_percent.values:.2f}% of the summer (on station) is statically decoupled")
 
-# frequency along time:
-months = xr.DataArray(["Jun", "Jul", "Aug", "Sep"])
-plt.figure(figsize=(8,5))
-plt.bar(months,monthly_percent.sel(month=slice(6,9)).values,width=0.8)
-plt.ylim(0,100)
-plt.xlabel("UTC Time")
-plt.ylabel("Frequency (%)")
-# plt.title("Static Stability Decoupling (Summer 2024)")
-plt.show()
+# # frequency along time:
+# months = xr.DataArray(["Jun", "Jul", "Aug", "Sep"])
+# plt.figure(figsize=(8,5))
+# plt.bar(months,monthly_percent.sel(month=slice(6,9)).values,width=0.8)
+# plt.ylim(0,100)
+# plt.xlabel("UTC Time")
+# plt.ylabel("Frequency (%)")
+# # plt.title("Static Stability Decoupling (Summer 2024)")
+# plt.show()
 
-# identify long durations (1+ hours):
-decouple_flag = static_decoupled.astype(int)
-groups = (decouple_flag.diff("time") != 0).cumsum("time")
-for num in np.unique(groups):
-    segment = decouple_flag.where(groups==num,drop=True)
-    if segment.mean() == 1:
-        duration = len(segment)
-        if duration >= 36:
-            print(segment.time.values[0], "to", segment.time.values[-1])
+# # identify long durations (1+ hours):
+# decouple_flag = static_decoupled.astype(int)
+# groups = (decouple_flag.diff("time") != 0).cumsum("time")
+# for num in np.unique(groups):
+#     segment = decouple_flag.where(groups==num,drop=True)
+#     if segment.mean() == 1:
+#         duration = len(segment)
+#         if duration >= 36:
+#             print(segment.time.values[0], "to", segment.time.values[-1])
 
 # # dTheta across all heights
 # plt.figure(figsize=(10, 5))
@@ -298,8 +323,8 @@ for num in np.unique(groups):
 #%% LIDAR VARIABLES
 
 # grab wind speed, wind direction from combined lidar file
-wind_speed = dataLidar["WS"]#.sel(time=slice("2024-07-19 00:00:00","2024-07-19 23:59:59"))
-wind_direction = np.deg2rad(dataLidar["WD"])#.sel(time=slice("2024-07-19 00:00:00","2024-07-19 23:59:59"))
+wind_speed = dataLidar["wind_speed"]#.sel(time=slice("2024-07-19 00:00:00","2024-07-19 23:59:59"))
+wind_direction = np.deg2rad(dataLidar["wind_direction"])#.sel(time=slice("2024-07-19 00:00:00","2024-07-19 23:59:59"))
 
 # calculate u and v
 uGeo = -wind_speed * np.sin(wind_direction)
@@ -318,8 +343,6 @@ sGeo = np.sqrt(uGeo**2+vGeo**2)
 # plt.show()
 
 #%% METEOROLOGICAL OVERVIEW
-
-# OVERALL/40M/140M WIND ROSE
 all_ws = wind_speed.values.flatten()
 all_ws = all_ws[~np.isnan(all_ws)]
 all_wd = np.rad2deg(wind_direction.values.flatten())
@@ -335,126 +358,136 @@ allhub_ws = allhub_ws[~np.isnan(allhub_ws)]
 allhub_wd = np.rad2deg(wind_direction.sel(height=140).values.flatten())
 allhub_wd = allhub_wd[~np.isnan(allhub_wd)]
 
-    # shared settings
-dir_bins = np.arange(0,361,30)
-counts, _ = np.histogram(all_wd,bins=dir_bins)
-freq = counts / counts.sum() * 100
-rose_theta = np.deg2rad(dir_bins[:-1])
-rose_width = np.deg2rad(30)
-speed_bins = [0,2,4,6,8,10,12,14,16,18,20,22]
-colors = plt.cm.viridis(np.linspace(0,1,len(speed_bins)-1))
-    # define datasets
-datasets = [
-    (all_wd, all_ws, "All Heights"),
-    (allsurf_wd, allsurf_ws, "40 m"),
-    (allhub_wd, allhub_ws, "140 m")
-]
-    # set up
-fig, axes = plt.subplots(
-    1, 3,
-    subplot_kw={'projection': 'polar'},
-    figsize=(15, 10)
-)
-legend_handles = None
-legend_labels = None
-    # loop through
-for ax, (wd, ws, title) in zip(axes, datasets):
-    H, _, _ = np.histogram2d(
-        wd,
-        ws,
-        bins=[dir_bins, speed_bins]
-    )
-    freq = H / H.sum()
-    bottom = np.zeros(len(rose_theta))
-    for i in range(len(speed_bins)-1):
-        values = freq[:, i]
-        bars = ax.bar(
-            rose_theta,
-            values,
-            width=rose_width,
-            bottom=bottom,
-            color=colors[i],
-            label=f"{speed_bins[i]}-{speed_bins[i+1]} m/s"
-        )
-        bottom += values
-        
-        ax.set_theta_zero_location("N")
-        ax.set_theta_direction(-1)
-        ax.set_ylim(0, 0.35) # same max for all plots (20% here)
-        ax.set_yticks([0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35])
-        ax.set_yticklabels(['5%', '', '15%', '', '25%', '', '35%'])
-        
-legend_handles = [
-    Patch(
-        facecolor=colors[i],
-        label=f"{speed_bins[i]}-{speed_bins[i+1]} m/s"
-    )
-    for i in range(len(speed_bins)-1)
-]
-fig.legend(
-    handles=legend_handles,
-    loc='center left',
-    bbox_to_anchor=(0.9, 0.5),
-    title='Wind Speed',
-    fontsize=12
-)
-panel_labels = [
-    '(a)',
-    '(b)',
-    '(c)'
-]
 
-for ax, panel_label in zip(axes, panel_labels):
-    ax.text(
-        0.5, -0.15,
-        panel_label,
-        transform=ax.transAxes,
-        ha='center',
-        va='center',
-        fontsize=12,
-        fontweight="bold"
-    )
-fig.subplots_adjust(bottom=0.2)
-plt.tight_layout(rect=[0, 0, 0.88, 1])
-plt.show()
+# OVERALL/40M/140M WIND ROSE
+#     # shared settings
+# dir_bins = np.arange(0,361,30)
+# rose_theta = np.deg2rad(dir_bins[:-1])
+# rose_width = np.deg2rad(30)
+# speed_bins = [0,2,4,6,8,10,12,14,16,18,20,22]
+# colors = plt.cm.viridis(np.linspace(0,1,len(speed_bins)-1))
+
+#     # define datasets
+# datasets = [
+#     (allsurf_wd, allsurf_ws, "40 m"),
+#     (allhub_wd, allhub_ws, "140 m")
+# ]
+#     # set up
+# fig, axes = plt.subplots(
+#     1, 2,
+#     subplot_kw={'projection': 'polar'},
+#     figsize=(10, 5)
+# )
+# legend_handles = None
+# legend_labels = None
+#     # loop through
+# for ax, (wd, ws, title) in zip(axes, datasets):
+#     H, _, _ = np.histogram2d(
+#         wd,
+#         ws,
+#         bins=[dir_bins, speed_bins]
+#     )
+#     freq = H / H.sum()
+#     bottom = np.zeros(len(rose_theta))
+#     for i in range(len(speed_bins)-1):
+#         values = freq[:, i]
+#         bars = ax.bar(
+#             rose_theta,
+#             values,
+#             width=rose_width,
+#             bottom=bottom,
+#             color=colors[i],
+#             label=f"{speed_bins[i]}-{speed_bins[i+1]} m/s"
+#         )
+#         bottom += values
+        
+#         ax.set_theta_zero_location("N")
+#         ax.set_theta_direction(-1)
+#         ax.set_ylim(0, 0.35) # same max for all plots (20% here)
+#         ax.set_yticks([0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35])
+#         ax.set_yticklabels(['5%', '', '15%', '', '25%', '', '35%'])
+        
+# legend_handles = [
+#     Patch(
+#         facecolor=colors[i],
+#         label=f"{speed_bins[i]}-{speed_bins[i+1]} m/s"
+#     )
+#     for i in range(len(speed_bins)-1)
+# ]
+# fig.legend(
+#     handles=legend_handles,
+#     loc='center left',
+#     bbox_to_anchor=(0.9, 0.5),
+#     title='Wind Speed',
+#     fontsize=12
+# )
+# panel_labels = [
+#     '(a)',
+#     '(b)'
+# ]
+
+# for ax, panel_label in zip(axes, panel_labels):
+#     ax.text(
+#         0.5, -0.15,
+#         panel_label,
+#         transform=ax.transAxes,
+#         ha='center',
+#         va='center',
+#         fontsize=12,
+#         fontweight="bold"
+#     )
+# fig.subplots_adjust(bottom=0.2)
+# plt.tight_layout(rect=[0, 0, 0.88, 1])
+# plt.show()
 
 
 # OVERALL/40M/140M WIND SPEED DISTRIBUTION
-datasets = [
-    (all_ws, "(a)"),
-    (allsurf_ws, "(b)"),
-    (allhub_ws, "(c)")
-]
+# datasets = [
+#     (all_ws, "(a)"),
+#     (allsurf_ws, "(b)"),
+#     (allhub_ws, "(c)")
+# ]
 
-fig, axes = plt.subplots(
-    1, 3,
-    figsize=(10,5),
-    sharey = True
-)
+# fig, axes = plt.subplots(
+#     1, 3,
+#     figsize=(10,5),
+#     sharey = True
+# )
 
-max_count = 0
-for ws, _ in datasets:
-    counts, _ = np.histogram(ws,bins=np.arange(0,22.5,0.5))
-    max_count = max(max_count,counts.max())
+# max_count = 0
+# for ws, _ in datasets:
+#     counts, _ = np.histogram(ws,bins=np.arange(0,22.5,0.5))
+#     max_count = max(max_count,counts.max())
 
-for ax, (ws,label) in zip(axes,datasets):
-    ax.hist(ws,bins=np.arange(0,22.5,0.5),weights=np.ones_like(ws)/len(ws)*100,edgecolor='black')
-    ax.set_xlabel(r"Wind speed $(m s^{-1})$")
-    ax.set_xticks([0,2,4,6,8,10,12,14,16,18,20,22])
-    # ax.set_ylim(0,6)
+# for ax, (ws,label) in zip(axes,datasets):
+#     ax.hist(ws,bins=np.arange(0,22.5,0.5),weights=np.ones_like(ws)/len(ws)*100,edgecolor='black')
+#     ax.set_xlabel(r"Wind speed $(m s^{-1})$")
+#     ax.set_xticks([0,2,4,6,8,10,12,14,16,18,20,22])
+#     # ax.set_ylim(0,6)
 
-    ax.text(
-        0.5,-0.175,
-        label,
-        transform=ax.transAxes,
-        ha='center',
-        va='center',
-        fontsize=12,
-        fontweight="bold")
+#     ax.text(
+#         0.5,-0.175,
+#         label,
+#         transform=ax.transAxes,
+#         ha='center',
+#         va='center',
+#         fontsize=12,
+#         fontweight="bold")
 
-axes[0].set_ylabel('Frequency (%)')
-plt.tight_layout()
-plt.show()
+# axes[0].set_ylabel('Frequency (%)')
+# plt.tight_layout()
+# plt.show()
+
+
+# 40M/140M WIND SPEED DISTRIBUTION
+fig, ax = plt.subplots(figsize=(10,5))
+ax.hist(allsurf_ws,bins=np.arange(0,22.5,0.5),weights=np.ones_like(allsurf_ws)/len(allsurf_ws)*100,edgecolor='black',alpha=0.7,label='40m')
+ax.hist(allhub_ws,bins=np.arange(0,22.5,0.5),weights=np.ones_like(allhub_ws)/len(allhub_ws)*100,edgecolor='black',alpha=0.7,label='140m')
+ax.set_xlabel(r"Wind speed $(m s^{-1})$")
+ax.set_ylabel('Frequency (%)')
+ax.legend()
+ax.set_xticks([0,2,4,6,8,10,12,14,16,18,20,22])
+
 
 
 # SURF/HUB DTHETA AVERAGES FOR OVERVIEW
@@ -606,19 +639,27 @@ def detect_dynamicdecoupling(BulkRi_surf,BulkRi_hub):
     dhub_stable = (BulkRi_hub>0)
     dhub_unstable = (BulkRi_hub<0)
     
-    dlogic1 = (dsurf_stable & dhub_unstable) & valid4
-    dlogic2 = (dsurf_unstable & dhub_stable) & valid4
-    dlogic3 = (dsurf_unstable & dhub_unstable) & valid4
-    
+    dlogic1 = (dsurf_stable & dhub_unstable) & valid4 # surf-stable/unstable-aloft
+    dlogic2 = (dsurf_unstable & dhub_stable) & valid4 # Q4 surf-unstable/stable-aloft
+    dlogic3 = (dsurf_unstable & dhub_unstable) & valid4 # coupled unstable
+    dlogic4 = (dsurf_stable & dhub_stable) & valid4 # coupled stable
+    hub_logic = (dhub_stable | dhub_unstable) & valid4 # all hub-level measurements
+
     dtimes1 = BulkRi_surf.time.where(dlogic1,drop=True)
     dtimes2 = BulkRi_surf.time.where(dlogic2,drop=True)
     dtimes3 = BulkRi_surf.time.where(dlogic3,drop=True)
-    
-    return dtimes1,dtimes2,dtimes3
+    dtimes4 = BulkRi_surf.time.where(dlogic4,drop=True)
+    hub_times = BulkRi_hub.time.where(hub_logic,drop=True)
+    hub_values = BulkRi_hub.where(hub_logic,drop=True).values
 
-dtimes1,dtimes2,dtimes3 = detect_dynamicdecoupling(BulkRi_surf,BulkRi_hub)
-# # print(f"dynamically stable near surface and dynamically unstable near hub: {dtimes1}")
-# # print(f"dynamically unstable near surface and dynamically stable near hub: {dtimes2}")
+    return dtimes1,dtimes2,dtimes3,dtimes4,hub_times,hub_values
+
+dtimes1,dtimes2,dtimes3,dtimes4,hub_times,hub_values = detect_dynamicdecoupling(BulkRi_surf,BulkRi_hub)
+# print(f"dynamically stable near surface and dynamically unstable near hub: {dtimes1}")
+# print(f"dynamically unstable near surface and dynamically stable near hub: {dtimes2}")
+
+# print(hub_times)
+# print(hub_values)
 
 # Dynamic Quadrant Plot:
 valid4 = (
@@ -696,7 +737,7 @@ Q4percent = Q4.where(valid4).mean()*100
 #     segment = decouple_flag.where(groups==num,drop=True)
 #     if segment.mean() == 1:
 #         duration = len(segment)
-#         if duration >= 36:
+#         if duration >= 6:
 #             print(segment.time.values[0], "to", segment.time.values[-1])
 
 # # SURF/HUB BULK RICHARDSON NUMBER SCATTER PLOT
@@ -735,7 +776,6 @@ Q4percent = Q4.where(valid4).mean()*100
 
 #%% COMPARISON WIND ROSES
 
-# # Q4 VS COUPLED WIND ROSE
 # # grab wind speed/direction when decoupling occurs
 # decoupled_ws1 = wind_speed.sel(time=dtimes1).values.flatten() # stable surf, unstable hub
 # decoupled_ws2 = wind_speed.sel(time=dtimes2).values.flatten() # unstable surf, stable hub [target]
@@ -762,14 +802,15 @@ Q4percent = Q4.where(valid4).mean()*100
 # coupled_wd = np.rad2deg(wind_direction.sel(time=coupled_times).values.flatten())
 # coupled_wd = coupled_wd[~np.isnan(coupled_wd)]
 
+
+# # Q4 VS COUPLED WIND ROSE
 #     # shared settings
 # dir_bins = np.arange(0,361,30)
-# counts, _ = np.histogram(coupled_wd,bins=dir_bins)
-# freq = counts / counts.sum() * 100
 # rose_theta = np.deg2rad(dir_bins[:-1])
 # rose_width = np.deg2rad(30)
 # speed_bins = [0,2,4,6,8,10,12,14,16,18,20,22]
 # colors = plt.cm.viridis(np.linspace(0,1,len(speed_bins)-1))
+
 #     # define datasets
 # datasets = [
 #     (decoupled_wd2, decoupled_ws2, "Decoupled"),
@@ -806,9 +847,9 @@ Q4percent = Q4.where(valid4).mean()*100
         
 #         ax.set_theta_zero_location("N")
 #         ax.set_theta_direction(-1)
-#         ax.set_ylim(0, 0.35) # same max for all plots (20% here)
-#         ax.set_yticks([0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35])
-#         ax.set_yticklabels(['5%', '', '15%', '', '25%', '', '35%'])
+#         ax.set_ylim(0, 0.40) # same max for all plots (20% here)
+#         ax.set_yticks([0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40])
+#         ax.set_yticklabels(['5%', '', '15%', '', '25%', '', '35%', ''])
         
 # legend_handles = [
 #     Patch(
@@ -845,7 +886,7 @@ Q4percent = Q4.where(valid4).mean()*100
 # plt.show()
 
 
-# Q4 OCCURRENCES THROUGHOUT THE DAY
+# # Q4 OCCURRENCES THROUGHOUT THE DAY
 # UTCtimes = np.array([0,2,4,6,8,10,12,14,16,18,20,22])
 
 # fig,ax = plt.subplots()
@@ -906,8 +947,6 @@ Q4percent = Q4.where(valid4).mean()*100
 
 #     # shared settings
 # dir_bins = np.arange(0,361,30)
-# counts, _ = np.histogram(coupled_wd,bins=dir_bins)
-# freq = counts / counts.sum() * 100
 # rose_theta = np.deg2rad(dir_bins[:-1])
 # rose_width = np.deg2rad(30)
 # speed_bins = [0,2,4,6,8,10,12,14,16,18,20,22]
@@ -953,9 +992,9 @@ Q4percent = Q4.where(valid4).mean()*100
         
 #         ax.set_theta_zero_location("N")
 #         ax.set_theta_direction(-1)
-#         ax.set_ylim(0, 0.40) # same max for all plots (20% here)
-#         ax.set_yticks([0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40])
-#         ax.set_yticklabels(['5%', '', '15%', '', '25%', '', '35%', ''])
+#         ax.set_ylim(0, 0.45) # same max for all plots
+#         ax.set_yticks([0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45])
+#         ax.set_yticklabels(['5%', '', '15%', '', '25%', '', '35%', '', '45%'])
         
 # legend_handles = [
 #     Patch(
@@ -1117,8 +1156,6 @@ Q4percent = Q4.where(valid4).mean()*100
 
 #     # shared settings
 # dir_bins = np.arange(0,361,30)
-# # counts, _ = np.histogram(decoupled_wd,bins=dir_bins)
-# # freq = counts / counts.sum() * 100
 # rose_theta = np.deg2rad(dir_bins[:-1])
 # rose_width = np.deg2rad(30)
 # speed_bins = [0,2,4,6,8,10,12,14,16,18,20,22]
@@ -1163,7 +1200,7 @@ Q4percent = Q4.where(valid4).mean()*100
 #         ax.set_theta_direction(-1)
 #         ax.set_ylim(0, 1.0) # same max for all plots (20% here)
 #         ax.set_yticks([0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45,
-#                        0.50, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0])
+#                         0.50, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0])
 #         ax.set_yticklabels(['', '10%', '', '', '25%', '', '', '', '', '50%', 
 #                             '', '', '', '', '75%', '', '', '', '', '100%'])
 
@@ -1226,7 +1263,7 @@ Q4percent = Q4.where(valid4).mean()*100
 # notcase5_ws = coupled_ws.sel(time="2024-08-24").values.flatten()
 # notcase5_wd = coupled_wd.sel(time="2024-08-24").values.flatten()
 
-#  # shared settings
+#   # shared settings
 # dir_bins = np.arange(0,361,30)
 # rose_theta = np.deg2rad(dir_bins[:-1])
 # rose_width = np.deg2rad(30)
@@ -1272,7 +1309,7 @@ Q4percent = Q4.where(valid4).mean()*100
 #         ax.set_theta_direction(-1)
 #         ax.set_ylim(0, 0.75) # same max for all plots (20% here)
 #         ax.set_yticks([0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45,
-#                        0.50, 0.55, 0.6, 0.65, 0.7, 0.75])
+#                         0.50, 0.55, 0.6, 0.65, 0.7, 0.75])
 #         ax.set_yticklabels(['', '10%', '', '', '25%', '', '', '', '', '50%', 
 #                             '', '', '', '', '75%'])
 

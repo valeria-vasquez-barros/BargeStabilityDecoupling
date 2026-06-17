@@ -10,6 +10,7 @@ import matplotlib.dates as mdates
 import matplotlib.cm as cm
 import numpy as np
 import pandas as pd
+import csv
 from astral import LocationInfo
 from astral.sun import sun
 from metpy.calc import mixing_ratio_from_relative_humidity
