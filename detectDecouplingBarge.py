@@ -27,7 +27,7 @@ plt.rcParams['legend.fontsize'] = 12
 
 # Open the data files
 filepathAssist = r"C:\Users\valer\Documents\WFIP3\barg.assist.tropoe.z01.combined.revised2.nc"
-# filepathLidar = r"C:\Users\valer\Documents\WFIP3\wfip3.barg.lidar.z05.c0.nc"
+# filepathLidar = r"C:\Users\valer\Documents\WFIP3\wfip3.barg.lidar.z02.b0.nc"
 filepathLidar = r"C:\Users\valer\Documents\WFIP3\lidar.test\barg.lidar.z02.combined.nc"
 dataAssist = xr.open_dataset(filepathAssist,decode_times = "true")
 dataLidar = xr.open_dataset(filepathLidar,decode_times="true")
@@ -43,12 +43,12 @@ dataLidar = xr.open_dataset(filepathLidar,decode_times="true")
     # before any post-processing
 
 # # Update the 'time' coordinate in the xarray dataset to the converted datetimes
-# dataLidar['time'] = xr.DataArray(dataLidar.base_time.values, dims=["time"])
+# dataLidar = dataLidar.assign_coords(time=pd.to_datetime(dataLidar.time.values, unit="s"))
 # dataLidar['z'] = xr.DataArray(dataLidar.Z.values, dims=["z"])
 # dataLidar = dataLidar.rename({"z": "height"})
 # # Reorder dimensions so that 'time' is the first dimension
 # dataLidar = dataLidar.transpose('time', 'height')
-# dataLidar = dataLidar.interp(height = np.linspace(40,300,14))
+# dataLidar["time"]=dataLidar["time"].dt.ceil("10min")
 
 # # Visualize null values before masking
 # plt.figure(figsize=(10,6))
@@ -343,20 +343,20 @@ sGeo = np.sqrt(uGeo**2+vGeo**2)
 # plt.show()
 
 #%% METEOROLOGICAL OVERVIEW
-all_ws = wind_speed.values.flatten()
-all_ws = all_ws[~np.isnan(all_ws)]
-all_wd = np.rad2deg(wind_direction.values.flatten())
-all_wd = all_wd[~np.isnan(all_wd)]
+# all_ws = wind_speed.values.flatten()
+# all_ws = all_ws[~np.isnan(all_ws)]
+# all_wd = np.rad2deg(wind_direction.values.flatten())
+# all_wd = all_wd[~np.isnan(all_wd)]
 
-allsurf_ws = wind_speed.sel(height=40).values.flatten()
-allsurf_ws = allsurf_ws[~np.isnan(allsurf_ws)]
-allsurf_wd = np.rad2deg(wind_direction.sel(height=40).values.flatten())
-allsurf_wd = allsurf_wd[~np.isnan(allsurf_wd)]
+# allsurf_ws = wind_speed.sel(height=40).values.flatten()
+# allsurf_ws = allsurf_ws[~np.isnan(allsurf_ws)]
+# allsurf_wd = np.rad2deg(wind_direction.sel(height=40).values.flatten())
+# allsurf_wd = allsurf_wd[~np.isnan(allsurf_wd)]
 
-allhub_ws = wind_speed.sel(height=140).values.flatten()
-allhub_ws = allhub_ws[~np.isnan(allhub_ws)]
-allhub_wd = np.rad2deg(wind_direction.sel(height=140).values.flatten())
-allhub_wd = allhub_wd[~np.isnan(allhub_wd)]
+# allhub_ws = wind_speed.sel(height=140).values.flatten()
+# allhub_ws = allhub_ws[~np.isnan(allhub_ws)]
+# allhub_wd = np.rad2deg(wind_direction.sel(height=140).values.flatten())
+# allhub_wd = allhub_wd[~np.isnan(allhub_wd)]
 
 
 # OVERALL/40M/140M WIND ROSE
@@ -479,94 +479,96 @@ allhub_wd = allhub_wd[~np.isnan(allhub_wd)]
 # plt.show()
 
 
-# 40M/140M WIND SPEED DISTRIBUTION
-fig, ax = plt.subplots(figsize=(10,5))
-ax.hist(allsurf_ws,bins=np.arange(0,22.5,0.5),weights=np.ones_like(allsurf_ws)/len(allsurf_ws)*100,edgecolor='black',alpha=0.7,label='40m')
-ax.hist(allhub_ws,bins=np.arange(0,22.5,0.5),weights=np.ones_like(allhub_ws)/len(allhub_ws)*100,edgecolor='black',alpha=0.7,label='140m')
-ax.set_xlabel(r"Wind speed $(m s^{-1})$")
-ax.set_ylabel('Frequency (%)')
-ax.legend()
-ax.set_xticks([0,2,4,6,8,10,12,14,16,18,20,22])
+# # 40M/140M WIND SPEED DISTRIBUTION
+# fig, ax = plt.subplots(figsize=(10,5))
+# ax.hist(allsurf_ws,bins=np.arange(0,22.5,0.5),
+#         weights=np.ones_like(allsurf_ws)/len(allsurf_ws)*100,edgecolor='black',
+#         alpha=0.7,label='40m',color='teal')
+# ax.hist(allhub_ws,bins=np.arange(0,22.5,0.5),
+#         weights=np.ones_like(allhub_ws)/len(allhub_ws)*100,edgecolor='black',
+#         alpha=0.7,label='140m',color='orangered')
+# ax.set_xlabel(r"Wind speed $(m s^{-1})$")
+# ax.set_ylabel('Frequency (%)')
+# ax.legend()
+# ax.set_xticks([0,2,4,6,8,10,12,14,16,18,20,22])
 
+# # SURF/HUB DTHETA AVERAGES FOR OVERVIEW
+# UTCtimes = np.array([0,2,4,6,8,10,12,14,16,18,20,22])
+# dTheta_surf_mean = dTheta_surf.mean(dim="height")
+# dTheta_hub_mean = dTheta_hub.mean(dim="height")
 
+# df_surf = dTheta_surf_mean.to_dataframe(name="dthetasurf_hm").reset_index()
+# df_surf["hour"] = df_surf["time"].dt.hour
+# df_surf = df_surf.dropna(subset="dthetasurf_hm")
+# df_hub = dTheta_hub_mean.to_dataframe(name="dthetahub_hm").reset_index()
+# df_hub["hour"] = df_hub["time"].dt.hour
+# df_hub = df_hub.dropna(subset="dthetahub_hm")
 
-# SURF/HUB DTHETA AVERAGES FOR OVERVIEW
-UTCtimes = np.array([0,2,4,6,8,10,12,14,16,18,20,22])
-dTheta_surf_mean = dTheta_surf.mean(dim="height")
-dTheta_hub_mean = dTheta_hub.mean(dim="height")
+# fig, axes = plt.subplots(
+#     2, 1,
+#     figsize=(10,8),
+#     sharex=True,
+#     sharey=True
+#     )
 
-df_surf = dTheta_surf_mean.to_dataframe(name="dthetasurf_hm").reset_index()
-df_surf["hour"] = df_surf["time"].dt.hour
-df_surf = df_surf.dropna(subset="dthetasurf_hm")
-df_hub = dTheta_hub_mean.to_dataframe(name="dthetahub_hm").reset_index()
-df_hub["hour"] = df_hub["time"].dt.hour
-df_hub = df_hub.dropna(subset="dthetahub_hm")
+# ax_surf = axes[1]
+# ax_hub = axes[0]
 
-fig, axes = plt.subplots(
-    2, 1,
-    figsize=(10,8),
-    sharex=True,
-    sharey=True
-    )
+# sb.violinplot(df_hub,x="hour",y="dthetahub_hm",cut=0,color="orangered",ax=ax_hub)
+# grouped = df_hub.groupby("hour")["dthetahub_hm"]
+# hours = []
+# means = []
+# q1s, q3s = [], []
+# for h, vals in grouped:
+#     vals = vals.dropna()
+#     hours.append(h)
+#     means.append(vals.mean())
+#     q1s.append(vals.quantile(0.25))
+#     q3s.append(vals.quantile(0.75))
+# ax_hub.vlines(hours, q1s, q3s,
+#             color="darkgray",
+#             linewidth=3,
+#             alpha=1.0,
+#             label="IQR (25–75%)")
+# ax_hub.text(0.02,0.95, "(a)", transform=ax_hub.transAxes,va="top",fontweight="bold")
 
-ax_surf = axes[0]
-ax_hub = axes[1]
+# sb.violinplot(df_surf,x="hour",y="dthetasurf_hm",cut=0,color="teal",ax=ax_surf)
+# grouped = df_surf.groupby("hour")["dthetasurf_hm"] # define quartiles
+# hours = []
+# means = []
+# q1s, q3s = [], []
+# for h, vals in grouped:
+#     vals = vals.dropna()
+#     hours.append(h)
+#     means.append(vals.mean())
+#     q1s.append(vals.quantile(0.25))
+#     q3s.append(vals.quantile(0.75))
+# ax_surf.vlines(hours, q1s, q3s,
+#             color="darkgray",
+#             linewidth=3,
+#             alpha=1.0,
+#             label="IQR (25–75%)")
+# ax_surf.text(0.02,0.95, "(b)", transform=ax_surf.transAxes,va="top",fontweight="bold")
 
-sb.violinplot(df_surf,x="hour",y="dthetasurf_hm",cut=0,color="lightcoral",ax=ax_surf)
-grouped = df_surf.groupby("hour")["dthetasurf_hm"] # define quartiles
-hours = []
-means = []
-q1s, q3s = [], []
-for h, vals in grouped:
-    vals = vals.dropna()
-    hours.append(h)
-    means.append(vals.mean())
-    q1s.append(vals.quantile(0.25))
-    q3s.append(vals.quantile(0.75))
-ax_surf.vlines(hours, q1s, q3s,
-            color="mediumslateblue",
-            linewidth=3,
-            alpha=0.8,
-            label="IQR (25–75%)")
-ax_surf.text(0.02,0.95, "(a)", transform=ax_surf.transAxes,va="top",fontweight="bold")
+# for ax in axes:
+#     ax.axhline(0,color='k')
+#     ax.set_ylim([-0.05,0.05])
+#     ax.set_xticks(UTCtimes)
+#     ax.set_xticklabels([f"{t:02d}" for t in UTCtimes])
+#     ax.set_ylabel(r"$d\theta_v/dz$")
 
-sb.violinplot(df_hub,x="hour",y="dthetahub_hm",cut=0,color="lightcoral",ax=ax_hub)
-grouped = df_hub.groupby("hour")["dthetahub_hm"]
-hours = []
-means = []
-q1s, q3s = [], []
-for h, vals in grouped:
-    vals = vals.dropna()
-    hours.append(h)
-    means.append(vals.mean())
-    q1s.append(vals.quantile(0.25))
-    q3s.append(vals.quantile(0.75))
-ax_hub.vlines(hours, q1s, q3s,
-            color="mediumslateblue",
-            linewidth=3,
-            alpha=0.8,
-            label="IQR (25–75%)")
-ax_hub.text(0.02,0.95, "(b)", transform=ax_hub.transAxes,va="top",fontweight="bold")
-
-for ax in axes:
-    ax.axhline(0,color='k')
-    ax.set_ylim([-0.05,0.05])
-    ax.set_xticks(UTCtimes)
-    ax.set_xticklabels([f"{t:02d}" for t in UTCtimes])
-    ax.set_ylabel(r"$d\theta_v/dz$")
-
-handles, labels = ax_surf.get_legend_handles_labels()
-fig.legend(handles,labels,loc="center right")
-axes[-1].set_xlabel("UTC")
-axes[0].set_xlabel(" ")
-ax2 = axes[0].twiny()
-ax2.set_xlim(ax.get_xlim())
-ax2.set_xticks(ax.get_xticks())
-et_labels = ((UTCtimes - 4) % 24)
-ax2.set_xticklabels([f"{t:02d}" for t in et_labels])
-ax2.set_xlabel("ET")
-plt.tight_layout()
-plt.show()
+# handles, labels = ax_surf.get_legend_handles_labels()
+# fig.legend(handles,labels,loc="center right")
+# axes[-1].set_xlabel("UTC")
+# axes[0].set_xlabel(" ")
+# ax2 = axes[0].twiny()
+# ax2.set_xlim(ax.get_xlim())
+# ax2.set_xticks(ax.get_xticks())
+# et_labels = ((UTCtimes - 4) % 24)
+# ax2.set_xticklabels([f"{t:02d}" for t in et_labels])
+# ax2.set_xlabel("ET")
+# plt.tight_layout()
+# plt.show()
 
 #%% DYNAMIC STABILITY - BULK RICHARDSON NUMBER
 
@@ -708,18 +710,6 @@ Q4percent = Q4.where(valid4).mean()*100
 # monthly_percent = 100*(decoupled.groupby("time.month").mean())
 # print(f"{overall_percent.values:.2f}% of the summer (on station) is dynamically decoupled")
 
-# decoupled_percents = xr.DataArray([34.51,51.58,62.85,36.84])
-# cutoffs = xr.DataArray([0, 0.1, 0.25, 1])
-# plt.figure(figsize=(10,6))
-# # plt(cutoffs,decoupled_percents.values,width=0.8)
-# plt.plot(cutoffs,decoupled_percents,marker='o')
-# plt.ylim((0,100))
-# plt.xticks(cutoffs)
-# plt.xlabel("Critical Richardson Number")
-# plt.ylabel("Dynamic Decoupling Frequency (%)")
-# # plt.title("Critical Richardson Number Sensitivity Analysis")
-# plt.show()
-
 # # frequency along time:
 # months = xr.DataArray(["Jun", "Jul", "Aug", "Sep"])
 # plt.figure(figsize=(8,5))
@@ -773,6 +763,52 @@ Q4percent = Q4.where(valid4).mean()*100
 # plt.tight_layout()
 # plt.show()
 
+#%% SENSITIVITY ANALYSES WITH SONIC DATA
+
+# BULK AT SURF AND HUB
+# decoupled_percents = xr.DataArray([34.51,51.58,62.85,36.84])
+# cutoffs = xr.DataArray([0, 0.1, 0.25, 1])
+# plt.figure(figsize=(10,6))
+# # plt(cutoffs,decoupled_percents.values,width=0.8)
+# plt.plot(cutoffs,decoupled_percents,marker='o')
+# plt.ylim((0,100))
+# plt.xticks(cutoffs)
+# plt.xlabel("Critical Richardson Number")
+# plt.ylabel("Dynamic Decoupling Frequency (%)")
+# # plt.title("Critical Richardson Number Sensitivity Analysis")
+# plt.show()
+
+# df = pd.read_csv('WFIP3_onstation_sonicL_6p64m_24m_BulkRi_120_160m.csv')
+
+# Ric = 1
+
+# valid4 = (
+#     df["L_6p64m"].notnull() &
+#     df["BulkRi_hub"].notnull()
+#     )
+
+# Q1 = (df["L_6p64m"] > 0) & (df["BulkRi_hub"] > Ric)
+# Q2 = (df["L_6p64m"] > 0) & (df["BulkRi_hub"] < Ric)
+# Q3 = (df["L_6p64m"] < 0) & (df["BulkRi_hub"] < Ric)
+# Q4 = (df["L_6p64m"] < 0) & (df["BulkRi_hub"] > Ric)
+
+# decoupled = (Q2 | Q4).where(valid4)
+# overall_percent = 100*decoupled.mean()
+# print(f"{overall_percent:.2f}% of the summer (on station) is dynamically decoupled")
+
+# # WITH SONIC DATA AT SURF
+# decoupled_percents_6 = xr.DataArray([40.54,41.20,50.0,60.72])
+# decoupled_percents_24 = xr.DataArray([34.18,35.37,46.32,62.18])
+# cutoffs = xr.DataArray([0, 0.1, 0.25, 1])
+# plt.figure(figsize=(10,6))
+# plt.plot(cutoffs,decoupled_percents_6,marker='o')
+# plt.plot(cutoffs,decoupled_percents_24,marker='s')
+# plt.ylim((0,100))
+# plt.xticks(cutoffs)
+# plt.legend(['6m sonic data','24m sonic data'])
+# plt.xlabel("Critical Richardson Number")
+# plt.ylabel("Dynamic Decoupling Frequency (%)")
+# plt.show()
 
 #%% COMPARISON WIND ROSES
 
@@ -1356,14 +1392,55 @@ Q4percent = Q4.where(valid4).mean()*100
 # )
 # plt.show()
 
-#%% Extras that are less interesting to me
+decoupled_ws1 = wind_speed.sel(time=dtimes1,height=140).values.flatten() # stable surf, unstable hub
+decoupled_ws2 = wind_speed.sel(time=dtimes2,height=140).values.flatten() # unstable surf, stable hub [target]
+decoupled_ws1 = decoupled_ws1[~np.isnan(decoupled_ws1)]
+decoupled_ws2 = decoupled_ws2[~np.isnan(decoupled_ws2)] # [target]
+coupled_ws3 = wind_speed.sel(time=dtimes3,height=140).values.flatten() # coupled unstable
+coupled_ws4 = wind_speed.sel(time=dtimes4,height=140).values.flatten() # coupled stable
+coupled_ws3 = coupled_ws3[~np.isnan(coupled_ws3)]
+coupled_ws4 = coupled_ws4[~np.isnan(coupled_ws4)] #
 
-# # Wind speed (Q4) distribution histogram
-# plt.hist(decoupled_ws2,bins=80)
-# plt.xlabel("Wind Speed (m/s)")
-# plt.ylabel("Number of occurences (n)")
-# plt.title("Wind speed distribution (unstable surf, stable hub)")
-# plt.show()
+# QUADRANT WIND SPEED DISTRIBUTIONS 
+fig, ax = plt.subplots(figsize=(10,5))
+ax.hist(coupled_ws4,bins=np.arange(0,22,0.5),
+        weights=np.ones_like(coupled_ws4)/len(coupled_ws4)*100,
+        edgecolor='black',color='blue',alpha=0.5) #Q1 (coupled stable)
+ax.hist(decoupled_ws1,bins=np.arange(0,20,0.5),
+        weights=np.ones_like(decoupled_ws1)/len(decoupled_ws1)*100,
+        edgecolor='black',color='grey',alpha=0.5) #Q2 (surf-stable hub-unstable)
+ax.hist(coupled_ws3,bins=np.arange(0,15,0.5),
+        weights=np.ones_like(coupled_ws3)/len(coupled_ws3)*100,
+        edgecolor='black',color='red',alpha=0.5) #Q3 (coupled unstable)
+ax.hist(decoupled_ws2,bins=np.arange(0,17.5,0.5),
+        weights=np.ones_like(decoupled_ws2)/len(decoupled_ws2)*100,
+        edgecolor='black',color='purple',alpha=0.5) #Q4 (surf-unstable, hub-stable)
+ax.set_xlabel(r"Wind speed $(m s^{-1})$")
+ax.set_ylabel('Frequency (%)')
+ax.legend(['Coupled Stable','Surface-Stable, Hub-Unstable','Coupled Unstable',
+          'Surface-Unstable, Hub-Stable'])
+ax.set_xticks([0,2,4,6,8,10,12,14,16,18,20,22])
+
+fig, ax = plt.subplots(figsize=(10,5))
+bins = np.arange(0, 22.5, 0.5)
+datasets = [
+    (coupled_ws4, 'blue',   'Coupled Stable'),
+    (decoupled_ws1, 'grey', 'Surface-Stable, Hub-Unstable'),
+    (coupled_ws3, 'red',    'Coupled Unstable'),
+    (decoupled_ws2, 'purple','Surface-Unstable, Hub-Stable')
+]
+for data, color, label in datasets:
+    counts, edges = np.histogram(data, bins=bins)
+    freq = counts / len(data) * 100
+    centers = (edges[:-1] + edges[1:]) / 2
+    ax.plot(centers, freq, color=color, linewidth=2, label=label)
+ax.set_xlabel(r"Wind speed $(m\,s^{-1})$")
+ax.set_ylabel("Frequency (%)")
+ax.set_xticks(np.arange(0, 22, 2))
+ax.legend(['Coupled Stable','Surface-Stable, Hub-Unstable','Coupled Unstable',
+          'Surface-Unstable, Hub-Stable'])
+
+#%% Extras that are less interesting to me
 
 # # Coupled cases mask
 # all_times = wind_speed.time
