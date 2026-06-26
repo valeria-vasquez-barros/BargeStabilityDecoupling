@@ -27,8 +27,8 @@ plt.rcParams['legend.fontsize'] = 12
 
 # Open the data files
 filepathAssist = r"C:\Users\valer\Documents\WFIP3\barg.assist.tropoe.z01.combined.revised2.nc"
-# filepathLidar = r"C:\Users\valer\Documents\WFIP3\wfip3.barg.lidar.z02.b0.nc"
-filepathLidar = r"C:\Users\valer\Documents\WFIP3\lidar.test\barg.lidar.z02.combined.nc"
+filepathLidar = r"C:\Users\valer\Documents\WFIP3\wfip3.barg.lidar.z02.b0.nc"
+# filepathLidar = r"C:\Users\valer\Documents\WFIP3\lidar.test\barg.lidar.z02.combined.nc"
 dataAssist = xr.open_dataset(filepathAssist,decode_times = "true")
 dataLidar = xr.open_dataset(filepathLidar,decode_times="true")
 
@@ -37,22 +37,22 @@ dataLidar = xr.open_dataset(filepathLidar,decode_times="true")
 # print(dataLidar.notnull().sum())
 # print(dataLidar.isnull().sum())
 
-# assist has 239,904 total values (17136 times x 14 heights), 87,010 are null
-    # before any post-processing
-# lidar has 268,128 total values (19152 times x 14 heights), 77,825 are null
-    # before any post-processing
+# assist has 239,904 total values (17,136 times x 14 heights): 152,894 real values,
+    # 87,010 null values before any post-processing
+# lidar has 209,888 total values (14,992 times x 14 heights): 121,581 real values,
+    # 88,307 null values before any post-processing
 
-# # Update the 'time' coordinate in the xarray dataset to the converted datetimes
-# dataLidar = dataLidar.assign_coords(time=pd.to_datetime(dataLidar.time.values, unit="s"))
-# dataLidar['z'] = xr.DataArray(dataLidar.Z.values, dims=["z"])
-# dataLidar = dataLidar.rename({"z": "height"})
-# # Reorder dimensions so that 'time' is the first dimension
-# dataLidar = dataLidar.transpose('time', 'height')
-# dataLidar["time"]=dataLidar["time"].dt.ceil("10min")
+# Update the 'time' coordinate in the xarray dataset to the converted datetimes
+dataLidar = dataLidar.assign_coords(time=pd.to_datetime(dataLidar.time.values, unit="s"))
+dataLidar['z'] = xr.DataArray(dataLidar.Z.values, dims=["z"])
+dataLidar = dataLidar.rename({"z": "height"})
+# Reorder dimensions so that 'time' is the first dimension
+dataLidar = dataLidar.transpose('time', 'height')
+dataLidar["time"]=dataLidar["time"].dt.ceil("10min")
 
-# # Visualize null values before masking
-# plt.figure(figsize=(10,6))
-# dataAssist["theta"].isnull().plot(x="time",y="height",cmap="coolwarm")
+# # # Visualize null values before masking
+# # plt.figure(figsize=(10,6))
+# # dataAssist["theta"].isnull().plot(x="time",y="height",cmap="coolwarm")
 
 # Specify days ON-station, excludes off-station
 dates1 = pd.date_range(start="2024-06-17 05:00:00",end="2024-06-23 11:00:00",freq="10T")
@@ -60,8 +60,8 @@ dates2 = pd.date_range(start="2024-06-29 05:00:00",end="2024-08-08 11:00:00",fre
 dates3 = pd.date_range(start="2024-08-23 06:00:00",end="2024-09-28 10:00:00",freq="10T")
 valid = dates1.union(dates2).union(dates3)
 
-onStationA = dataAssist.time.isin(valid).sel(time=slice("2024-05-24 00:00:00", "2024-09-19 23:50:00"))
-onStationL = dataLidar.time.isin(valid).sel(time=slice("2024-05-24 00:00:00", "2024-09-19 23:50:00"))
+onStationA = dataAssist.time.isin(valid)#.sel(time=slice("2024-06-18 00:00:00", "2024-09-19 23:50:00"))
+onStationL = dataLidar.time.isin(valid)#.sel(time=slice("2024-06-18 00:00:00", "2024-09-19 23:50:00"))
 
 dataAssist = dataAssist.where(onStationA)
 dataLidar = dataLidar.where(onStationL)
@@ -70,15 +70,15 @@ dataLidar = dataLidar.where(onStationL)
 # print(dataAssist.isnull().sum())
 # print(dataLidar.notnull().sum())
 # print(dataLidar.isnull().sum())
-# assist has same total, but now 155,344 are null by removing off-station dates
-# lidar lost 28,244 values by matching date range with assist, plus 124,836 null values
-    # with off-station mask
+
+# assist has same total: 84,560 real values, 155,344 null after removing off-station dates
+# lidar has same total: 121,581 real values, 88,307 null after removing off-station dates
 
 # Specify times that data is available, excludes unavailable data among all instruments
 assistAvailSurf = dataAssist["theta"].sel(height=slice(40,60)).notnull().all("height")
 assistAvailHub = dataAssist["theta"].sel(height=slice(120,160)).notnull().all("height")
-lidarAvailSurf = dataLidar["wind_speed"].sel(height=slice(40,60)).notnull().all("height")
-lidarAvailHub = dataLidar["wind_speed"].sel(height=slice(120,160)).notnull().all("height")
+lidarAvailSurf = dataLidar["WS"].sel(height=slice(40,60)).notnull().all("height")
+lidarAvailHub = dataLidar["WS"].sel(height=slice(120,160)).notnull().all("height")
 
 overlap = (assistAvailSurf & assistAvailHub & lidarAvailSurf & lidarAvailHub)
 
@@ -89,9 +89,12 @@ dataLidar = dataLidar.where(overlap)
 # print(dataAssist.isnull().sum())
 # print(dataLidar.notnull().sum())
 # print(dataLidar.isnull().sum())
-# assist has same total, but finally 167,720 null values
-# lidar has 176,315 null values + 28,244 null values from prior step
 
+# assist has 188,762 total values: 67,144 real values, and 121,618 null values
+    # after including overlap only
+# lidar has 188,762 total values: 54,879 real values, and 133,883 null values
+    # after including overlap only
+    
 # # collect sunrise/sunset info
 # location = LocationInfo(latitude=dataAssist.VIP_station_lat, longitude=dataAssist.VIP_station_lon, timezone="UTC")
 # date = pd.to_datetime(dataAssist.time.values[10000])
@@ -323,8 +326,8 @@ Q4percent = Q4.where(valid2).mean()*100
 #%% LIDAR VARIABLES
 
 # grab wind speed, wind direction from combined lidar file
-wind_speed = dataLidar["wind_speed"]#.sel(time=slice("2024-07-19 00:00:00","2024-07-19 23:59:59"))
-wind_direction = np.deg2rad(dataLidar["wind_direction"])#.sel(time=slice("2024-07-19 00:00:00","2024-07-19 23:59:59"))
+wind_speed = dataLidar["WS"]#.sel(time=slice("2024-07-19 00:00:00","2024-07-19 23:59:59"))
+wind_direction = np.deg2rad(dataLidar["WD"])#.sel(time=slice("2024-07-19 00:00:00","2024-07-19 23:59:59"))
 
 # calculate u and v
 uGeo = -wind_speed * np.sin(wind_direction)
@@ -359,7 +362,7 @@ sGeo = np.sqrt(uGeo**2+vGeo**2)
 # allhub_wd = allhub_wd[~np.isnan(allhub_wd)]
 
 
-# OVERALL/40M/140M WIND ROSE
+# # 40M/140M WIND ROSE
 #     # shared settings
 # dir_bins = np.arange(0,361,30)
 # rose_theta = np.deg2rad(dir_bins[:-1])
@@ -439,45 +442,6 @@ sGeo = np.sqrt(uGeo**2+vGeo**2)
 # fig.subplots_adjust(bottom=0.2)
 # plt.tight_layout(rect=[0, 0, 0.88, 1])
 # plt.show()
-
-
-# OVERALL/40M/140M WIND SPEED DISTRIBUTION
-# datasets = [
-#     (all_ws, "(a)"),
-#     (allsurf_ws, "(b)"),
-#     (allhub_ws, "(c)")
-# ]
-
-# fig, axes = plt.subplots(
-#     1, 3,
-#     figsize=(10,5),
-#     sharey = True
-# )
-
-# max_count = 0
-# for ws, _ in datasets:
-#     counts, _ = np.histogram(ws,bins=np.arange(0,22.5,0.5))
-#     max_count = max(max_count,counts.max())
-
-# for ax, (ws,label) in zip(axes,datasets):
-#     ax.hist(ws,bins=np.arange(0,22.5,0.5),weights=np.ones_like(ws)/len(ws)*100,edgecolor='black')
-#     ax.set_xlabel(r"Wind speed $(m s^{-1})$")
-#     ax.set_xticks([0,2,4,6,8,10,12,14,16,18,20,22])
-#     # ax.set_ylim(0,6)
-
-#     ax.text(
-#         0.5,-0.175,
-#         label,
-#         transform=ax.transAxes,
-#         ha='center',
-#         va='center',
-#         fontsize=12,
-#         fontweight="bold")
-
-# axes[0].set_ylabel('Frequency (%)')
-# plt.tight_layout()
-# plt.show()
-
 
 # # 40M/140M WIND SPEED DISTRIBUTION
 # fig, ax = plt.subplots(figsize=(10,5))
@@ -1392,53 +1356,53 @@ Q4percent = Q4.where(valid4).mean()*100
 # )
 # plt.show()
 
-decoupled_ws1 = wind_speed.sel(time=dtimes1,height=140).values.flatten() # stable surf, unstable hub
-decoupled_ws2 = wind_speed.sel(time=dtimes2,height=140).values.flatten() # unstable surf, stable hub [target]
-decoupled_ws1 = decoupled_ws1[~np.isnan(decoupled_ws1)]
-decoupled_ws2 = decoupled_ws2[~np.isnan(decoupled_ws2)] # [target]
-coupled_ws3 = wind_speed.sel(time=dtimes3,height=140).values.flatten() # coupled unstable
-coupled_ws4 = wind_speed.sel(time=dtimes4,height=140).values.flatten() # coupled stable
-coupled_ws3 = coupled_ws3[~np.isnan(coupled_ws3)]
-coupled_ws4 = coupled_ws4[~np.isnan(coupled_ws4)] #
+# decoupled_ws1 = wind_speed.sel(time=dtimes1,height=140).values.flatten() # stable surf, unstable hub
+# decoupled_ws2 = wind_speed.sel(time=dtimes2,height=140).values.flatten() # unstable surf, stable hub [target]
+# decoupled_ws1 = decoupled_ws1[~np.isnan(decoupled_ws1)]
+# decoupled_ws2 = decoupled_ws2[~np.isnan(decoupled_ws2)] # [target]
+# coupled_ws3 = wind_speed.sel(time=dtimes3,height=140).values.flatten() # coupled unstable
+# coupled_ws4 = wind_speed.sel(time=dtimes4,height=140).values.flatten() # coupled stable
+# coupled_ws3 = coupled_ws3[~np.isnan(coupled_ws3)]
+# coupled_ws4 = coupled_ws4[~np.isnan(coupled_ws4)] #
 
-# QUADRANT WIND SPEED DISTRIBUTIONS 
-fig, ax = plt.subplots(figsize=(10,5))
-ax.hist(coupled_ws4,bins=np.arange(0,22,0.5),
-        weights=np.ones_like(coupled_ws4)/len(coupled_ws4)*100,
-        edgecolor='black',color='blue',alpha=0.5) #Q1 (coupled stable)
-ax.hist(decoupled_ws1,bins=np.arange(0,20,0.5),
-        weights=np.ones_like(decoupled_ws1)/len(decoupled_ws1)*100,
-        edgecolor='black',color='grey',alpha=0.5) #Q2 (surf-stable hub-unstable)
-ax.hist(coupled_ws3,bins=np.arange(0,15,0.5),
-        weights=np.ones_like(coupled_ws3)/len(coupled_ws3)*100,
-        edgecolor='black',color='red',alpha=0.5) #Q3 (coupled unstable)
-ax.hist(decoupled_ws2,bins=np.arange(0,17.5,0.5),
-        weights=np.ones_like(decoupled_ws2)/len(decoupled_ws2)*100,
-        edgecolor='black',color='purple',alpha=0.5) #Q4 (surf-unstable, hub-stable)
-ax.set_xlabel(r"Wind speed $(m s^{-1})$")
-ax.set_ylabel('Frequency (%)')
-ax.legend(['Coupled Stable','Surface-Stable, Hub-Unstable','Coupled Unstable',
-          'Surface-Unstable, Hub-Stable'])
-ax.set_xticks([0,2,4,6,8,10,12,14,16,18,20,22])
+# # QUADRANT WIND SPEED DISTRIBUTIONS 
+# fig, ax = plt.subplots(figsize=(10,5))
+# ax.hist(coupled_ws4,bins=np.arange(0,22,0.5),
+#         weights=np.ones_like(coupled_ws4)/len(coupled_ws4)*100,
+#         edgecolor='black',color='blue',alpha=0.5) #Q1 (coupled stable)
+# ax.hist(decoupled_ws1,bins=np.arange(0,20,0.5),
+#         weights=np.ones_like(decoupled_ws1)/len(decoupled_ws1)*100,
+#         edgecolor='black',color='grey',alpha=0.5) #Q2 (surf-stable hub-unstable)
+# ax.hist(coupled_ws3,bins=np.arange(0,15,0.5),
+#         weights=np.ones_like(coupled_ws3)/len(coupled_ws3)*100,
+#         edgecolor='black',color='red',alpha=0.5) #Q3 (coupled unstable)
+# ax.hist(decoupled_ws2,bins=np.arange(0,17.5,0.5),
+#         weights=np.ones_like(decoupled_ws2)/len(decoupled_ws2)*100,
+#         edgecolor='black',color='purple',alpha=0.5) #Q4 (surf-unstable, hub-stable)
+# ax.set_xlabel(r"Wind speed $(m s^{-1})$")
+# ax.set_ylabel('Frequency (%)')
+# ax.legend(['Coupled Stable','Surface-Stable, Hub-Unstable','Coupled Unstable',
+#           'Surface-Unstable, Hub-Stable'])
+# ax.set_xticks([0,2,4,6,8,10,12,14,16,18,20,22])
 
-fig, ax = plt.subplots(figsize=(10,5))
-bins = np.arange(0, 22.5, 0.5)
-datasets = [
-    (coupled_ws4, 'blue',   'Coupled Stable'),
-    (decoupled_ws1, 'grey', 'Surface-Stable, Hub-Unstable'),
-    (coupled_ws3, 'red',    'Coupled Unstable'),
-    (decoupled_ws2, 'purple','Surface-Unstable, Hub-Stable')
-]
-for data, color, label in datasets:
-    counts, edges = np.histogram(data, bins=bins)
-    freq = counts / len(data) * 100
-    centers = (edges[:-1] + edges[1:]) / 2
-    ax.plot(centers, freq, color=color, linewidth=2, label=label)
-ax.set_xlabel(r"Wind speed $(m\,s^{-1})$")
-ax.set_ylabel("Frequency (%)")
-ax.set_xticks(np.arange(0, 22, 2))
-ax.legend(['Coupled Stable','Surface-Stable, Hub-Unstable','Coupled Unstable',
-          'Surface-Unstable, Hub-Stable'])
+# fig, ax = plt.subplots(figsize=(10,5))
+# bins = np.arange(0, 22.5, 0.5)
+# datasets = [
+#     (coupled_ws4, 'blue',   'Coupled Stable'),
+#     (decoupled_ws1, 'grey', 'Surface-Stable, Hub-Unstable'),
+#     (coupled_ws3, 'red',    'Coupled Unstable'),
+#     (decoupled_ws2, 'purple','Surface-Unstable, Hub-Stable')
+# ]
+# for data, color, label in datasets:
+#     counts, edges = np.histogram(data, bins=bins)
+#     freq = counts / len(data) * 100
+#     centers = (edges[:-1] + edges[1:]) / 2
+#     ax.plot(centers, freq, color=color, linewidth=2, label=label)
+# ax.set_xlabel(r"Wind speed $(m s^{-1})$")
+# ax.set_ylabel("Frequency (%)")
+# ax.set_xticks(np.arange(0, 22, 2))
+# ax.legend(['Coupled Stable','Surface-Stable, Hub-Unstable','Coupled Unstable',
+#           'Surface-Unstable, Hub-Stable'])
 
 #%% Extras that are less interesting to me
 
